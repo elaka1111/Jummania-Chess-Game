@@ -6,9 +6,11 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.toColorInt
 
 
 /**
@@ -19,83 +21,63 @@ import android.view.View
 class CheckBoard @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
-    private val paint = Paint()
-    private var darkColor = Color.BLACK
-    private var lightColor = Color.WHITE
-    private var chessColor: Int = 0xFF808080.toInt()
+
+    private val chessFont = ResourcesCompat.getFont(context, R.font.chess_merida_unicode)
+    private val paint = Paint().also {
+        it.typeface = Typeface.create(chessFont, Typeface.BOLD)
+    }
+    private var darkColor = "#739654".toColorInt()
+    private var lightColor = "#ebeed3".toColorInt()
+    private var chessColor: Int = Color.BLACK
 
     private var touchedX: Float = 0f
     private var touchedY: Float = 0f
 
-    private val chessBoard = mutableListOf(
-        "♖️",
-        "♘️",
-        "♗️",
-        "♕️",
-        "♔️",
-        "♗️",
-        "♘️",
-        "♖️",
-        "♙️",
-        "♙️",
-        "♙️",
-        "♙️",
-        "♙️",
-        "♙️",
-        "♙️",
-        "♙️",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "♟️",
-        "♟️",
-        "♟️",
-        "♟️",
-        "♟️",
-        "♟️",
-        "♟️",
-        "♟️",
-        "♜️",
-        "♞️",
-        "♝️",
-        "♛️",
-        "♚️",
-        "♝️",
-        "♞️",
-        "♜️"
+    private val whitePieces = listOf(
+        "♖", "♘", "♗", "♕", "♔", "♗", "♘", "♖", "♙", "♙", "♙", "♙", "♙", "♙", "♙", "♙"
     )
 
+    private val blackPieces = listOf(
+        "♟", "♟", "♟", "♟", "♟", "♟", "♟", "♟", "♜", "♞", "♝", "♛", "♚", "♝", "♞", "♜"
+    )
 
-    private val pawns = "♟️"
+    private val chessBoard = mutableListOf(
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ).also {
+        it.addAll(0, whitePieces)
+        it.addAll(48, blackPieces)
+    }
 
     private var isSelected = false
     private var selectedRowNumber = -1
@@ -136,7 +118,7 @@ class CheckBoard @JvmOverloads constructor(
                         isSelected = false
                         selectedRowNumber = -1
                         selectedPiece = ""
-                    } else if (isSelected && selectedPiece != "") {
+                    } else if (isSelected && selectedPiece.isNotEmpty()) {
                         swapTo(selectedRowNumber - 1, rowNumber - 1)
                         isSelected = false
                         selectedRowNumber = -1
@@ -149,20 +131,17 @@ class CheckBoard @JvmOverloads constructor(
                         selectedPiece = chessBoard[rowNumber - 1]
                     }
 
-                    Log.d("Jjj", "$isSelected, $selectedRowNumber")
-
                     selected = true
                 }
 
                 paint.style = Paint.Style.FILL
                 paint.color = if (count % 2 == 0) darkColor else lightColor
-                // canvas.drawRect(left, top, right, bottom, paint)
+                canvas.drawRect(left, top, right, bottom, paint)
 
 
                 if (selectedRowNumber == rowNumber && selected && isSelected) {
-                    Log.d("Jjj", "$selectedRowNumber")
                     paint.style = Paint.Style.STROKE
-                    val padding = 11f
+                    val padding = size * 0.05f
                     paint.strokeWidth = padding
                     paint.color = Color.RED
 
@@ -201,14 +180,13 @@ class CheckBoard @JvmOverloads constructor(
 
         canvas.drawRect(x, y, startX, startY, paint)
 
-        drawText(canvas, Color.BLACK, 60f, "Chess Game", width / 2f, y - 30)
+        drawText(canvas, Color.BLACK, 100f, "Chess"/*"♔♕♖♗♘♙ ♚♛♜♝♞♟"*/, width / 2f, y - 30)
     }
 
     private fun drawText(
         canvas: Canvas, color: Int, textSize: Float, text: String, x: Float, y: Float
     ) {
         paint.style = Paint.Style.FILL
-        paint.typeface = Typeface.DEFAULT_BOLD
         paint.textSize = textSize
         paint.color = color
         paint.textAlign = Paint.Align.CENTER
@@ -227,11 +205,207 @@ class CheckBoard @JvmOverloads constructor(
     private fun swapTo(fromIndex: Int, toIndex: Int) {
         if (fromIndex in chessBoard.indices && toIndex in chessBoard.indices) {
             val fromPiece = chessBoard[fromIndex]
-            if (fromPiece != "") {
+
+            if (fromPiece.isEmpty()) return
+
+            val toPiece = chessBoard[toIndex]
+
+            val isFromWhitePiece = fromPiece in whitePieces
+
+            fun getSequence(
+                sequence: Int, horizontal: Boolean, vertical: Boolean, diagonal: Boolean
+            ): List<Int> {
+                return getSequence(
+                    fromIndex, sequence, isFromWhitePiece, horizontal, vertical, diagonal
+                )
+            }
+
+            if (isKing(fromPiece)) {
+                val sequence = getSequence(1, true, true, false)
+                if (toIndex !in sequence) {
+                    message("The King can only move one square in any direction.")
+                    return
+                }
+            } else if (isRook(fromPiece)) {
+                val sequence = getSequence(8, true, true, false)
+                if (toIndex !in sequence) {
+                    message("The Rook can only move one square in any direction.")
+                    return
+                }
+            } else if (isBishop(fromPiece)) {
+                val sequence = getSequence(8, false, false, true)
+                if (toIndex !in sequence) {
+                    message("The Bishop can only move one square diagonally.")
+                    return
+                }
+            } else if (isQueen(fromPiece)) {
+                val sequence = getSequence(8, true, true, true)
+                if (toIndex !in sequence) {
+                    message("The Queen can only move one square in any direction.")
+                    return
+                }
+            } else if (isKnight(fromPiece)) {
+                val sequence = getKnightSequence(fromIndex, isFromWhitePiece)
+                if (toIndex !in sequence) {
+                    message("The Knight can only move in an L shape.")
+                    return
+                }
+            }
+
+
+            val isToWhitePiece = toPiece in whitePieces
+
+            val isFromBlackPiece = fromPiece in blackPieces
+            val isToBlackPiece = toPiece in blackPieces
+
+            if (isFromWhitePiece && isToWhitePiece) {
+                message("White cannot move to white")
+            } else if (isFromBlackPiece && isToBlackPiece) {
+                message("Black cannot move to black")
+            } else if (fromPiece != "") {
                 chessBoard[toIndex] = fromPiece
                 chessBoard[fromIndex] = ""
+
+                if (toPiece != "") {
+                    message(String.format("%s attacks and captures %s!", fromPiece, toPiece))
+                }
+
             }
         }
+    }
+
+    private fun message(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun isKing(piece: String): Boolean {
+        return piece == "♔" || piece == "♚"
+    }
+
+    private fun isQueen(piece: String): Boolean {
+        return piece == "♕" || piece == "♛"
+    }
+
+    private fun isRook(piece: String): Boolean {
+        return piece == "♖" || piece == "♜"
+    }
+
+    private fun isBishop(piece: String): Boolean {
+        return piece == "♗" || piece == "♝"
+    }
+
+    private fun isKnight(piece: String): Boolean {
+        return piece == "♘" || piece == "♞"
+    }
+
+    private fun isPawn(piece: String): Boolean {
+        return piece == "♙" || piece == "♟"
+    }
+
+    private fun isInSequence() {
+
+    }
+
+    private fun getSequence(
+        position: Int,
+        sequence: Int,
+        isWhitePiece: Boolean,
+        horizontal: Boolean,
+        vertical: Boolean,
+        diagonal: Boolean
+    ): List<Int> {
+        val list = mutableListOf<Int>()
+
+        var left = horizontal
+        var right = horizontal
+        var up = vertical
+        var down = vertical
+        var upLeft = diagonal
+        var upRight = diagonal
+        var downLeft = diagonal
+        var downRight = diagonal
+
+        val leftLimit = position - (position % 8)
+        val rightLimit = leftLimit + 8
+
+        fun add(pos: Int): Boolean {
+            if (pos !in chessBoard.indices) return false
+            val piece = chessBoard[pos]
+            return if (piece.isEmpty()) {
+                list.add(pos)
+            } else {
+                val isBlackPiece = piece in blackPieces
+                if (isWhitePiece && isBlackPiece) {
+                    !list.add(pos)
+                } else if (!isWhitePiece && !isBlackPiece) {
+                    !list.add(pos)
+                } else false
+            }
+        }
+
+        for (i in 1 until sequence) {
+
+            if (left) {
+                val pos = position - 1 * i
+                left = if (pos >= leftLimit) add(pos)
+                else false
+
+            }
+
+            if (right) {
+                val pos = position + 1 * i
+                right = if (pos <= rightLimit) add(pos)
+                else false
+            }
+
+            if (up) up = add(position + 8 * i)
+
+            if (down) down = add(position - 8 * i)
+
+            if (upLeft) upLeft = add(position + 7 * i)
+
+            if (upRight) upRight = add(position + 9 * i)
+
+            if (downLeft) downLeft = add(position - 9 * i)
+
+            if (downRight) downRight = add(position - 7 * i)
+        }
+        return list
+    }
+
+    private fun getKnightSequence(position: Int, isWhitePiece: Boolean): List<Int> {
+        val list = mutableListOf<Int>()
+
+        fun add(pos: Int): Boolean {
+            if (pos !in chessBoard.indices) return false
+            val piece = chessBoard[pos]
+            return if (piece.isEmpty()) {
+                list.add(pos)
+            } else {
+                val isBlackPiece = piece in blackPieces
+                if (isWhitePiece && isBlackPiece) {
+                    !list.add(pos)
+                } else if (!isWhitePiece && !isBlackPiece) {
+                    !list.add(pos)
+                } else false
+            }
+        }
+
+
+        add(position + 6)
+        add(position - 6)
+        add(position + 10)
+        add(position - 10)
+        add(position + 15)
+        add(position - 15)
+        add(position + 17)
+        add(position - 17)
+
+        return list
+    }
+
+    private fun isCheck() {
+
     }
 
 
