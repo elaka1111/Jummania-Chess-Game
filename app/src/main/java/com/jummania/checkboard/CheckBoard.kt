@@ -85,6 +85,8 @@ class CheckBoard @JvmOverloads constructor(
 
     private var isInvalidate = false
 
+    private var isWhiteTurn = true
+
     //  private var needToMove = false
 
 
@@ -180,7 +182,12 @@ class CheckBoard @JvmOverloads constructor(
 
         canvas.drawRect(x, y, startX, startY, paint)
 
-        drawText(canvas, Color.BLACK, 100f, "Chess"/*"♔♕♖♗♘♙ ♚♛♜♝♞♟"*/, width / 2f, y - 30)
+        drawText(canvas, Color.BLACK, 100f, "Chess"/*"♔♕♖♗♘♙ ♚♛♜♝♞♟"*/, width / 2f, y - size)
+
+        paint.color = Color.RED
+        canvas.drawCircle(
+            width / 2f, if (isWhiteTurn) y - size / 2 else startY + size / 2, 22f, paint
+        )
     }
 
     private fun drawText(
@@ -212,6 +219,14 @@ class CheckBoard @JvmOverloads constructor(
 
             val isFromWhitePiece = fromPiece in whitePieces
 
+            if (isFromWhitePiece && !isWhiteTurn) {
+                message("It's not your turn!")
+                return
+            } else if (!isFromWhitePiece && isWhiteTurn) {
+                message("It's not your turn!")
+                return
+            }
+
             fun getSequence(
                 sequence: Int, horizontal: Boolean, vertical: Boolean, diagonal: Boolean
             ): List<Int> {
@@ -221,7 +236,7 @@ class CheckBoard @JvmOverloads constructor(
             }
 
             if (isKing(fromPiece)) {
-                val sequence = getSequence(1, true, true, false)
+                val sequence = getSequence(2, true, true, false)
                 if (toIndex !in sequence) {
                     message("The King can only move one square in any direction.")
                     return
@@ -250,6 +265,12 @@ class CheckBoard @JvmOverloads constructor(
                     message("The Knight can only move in an L shape.")
                     return
                 }
+            } else if (isPawn(fromPiece)) {
+                val sequence = getPawnSequence(fromIndex, isFromWhitePiece)
+                if (toIndex !in sequence) {
+                    message("The Pawn can only move one square forward.")
+                    return
+                }
             }
 
 
@@ -271,6 +292,8 @@ class CheckBoard @JvmOverloads constructor(
                 }
 
             }
+
+            isWhiteTurn = !isFromWhitePiece
         }
     }
 
@@ -302,10 +325,6 @@ class CheckBoard @JvmOverloads constructor(
         return piece == "♙" || piece == "♟"
     }
 
-    private fun isInSequence() {
-
-    }
-
     private fun getSequence(
         position: Int,
         sequence: Int,
@@ -329,18 +348,7 @@ class CheckBoard @JvmOverloads constructor(
         val rightLimit = leftLimit + 8
 
         fun add(pos: Int): Boolean {
-            if (pos !in chessBoard.indices) return false
-            val piece = chessBoard[pos]
-            return if (piece.isEmpty()) {
-                list.add(pos)
-            } else {
-                val isBlackPiece = piece in blackPieces
-                if (isWhitePiece && isBlackPiece) {
-                    !list.add(pos)
-                } else if (!isWhitePiece && !isBlackPiece) {
-                    !list.add(pos)
-                } else false
-            }
+            return add(list, pos, isWhitePiece)
         }
 
         for (i in 1 until sequence) {
@@ -373,24 +381,28 @@ class CheckBoard @JvmOverloads constructor(
         return list
     }
 
+    private fun isEnemy(piece: String, isWhitePiece: Boolean): Boolean {
+        if (piece.isEmpty()) return false
+        val isBlackPiece = piece in blackPieces
+        return (isWhitePiece && isBlackPiece) || (!isWhitePiece && !isBlackPiece)
+    }
+
+    private fun add(list: MutableList<Int>, pos: Int, isWhitePiece: Boolean): Boolean {
+        if (pos !in chessBoard.indices) return false
+        val piece = chessBoard[pos]
+        return if (piece.isEmpty()) {
+            list.add(pos)
+        } else if (isEnemy(piece, isWhitePiece)) {
+            !list.add(pos)
+        } else false
+    }
+
     private fun getKnightSequence(position: Int, isWhitePiece: Boolean): List<Int> {
         val list = mutableListOf<Int>()
 
-        fun add(pos: Int): Boolean {
-            if (pos !in chessBoard.indices) return false
-            val piece = chessBoard[pos]
-            return if (piece.isEmpty()) {
-                list.add(pos)
-            } else {
-                val isBlackPiece = piece in blackPieces
-                if (isWhitePiece && isBlackPiece) {
-                    !list.add(pos)
-                } else if (!isWhitePiece && !isBlackPiece) {
-                    !list.add(pos)
-                } else false
-            }
+        fun add(pos: Int) {
+            add(list, pos, isWhitePiece)
         }
-
 
         add(position + 6)
         add(position - 6)
@@ -400,6 +412,38 @@ class CheckBoard @JvmOverloads constructor(
         add(position - 15)
         add(position + 17)
         add(position - 17)
+
+        return list
+    }
+
+    private fun getPawnSequence(position: Int, isWhitePiece: Boolean): List<Int> {
+        val list = mutableListOf<Int>()
+
+        fun add(pos: Int) {
+            add(list, pos, isWhitePiece)
+        }
+
+        var animePosition = if (isWhitePiece) position + 7 else position - 7
+        if (animePosition in chessBoard.indices && isEnemy(
+                chessBoard[animePosition], isWhitePiece
+            )
+        ) {
+            add(animePosition)
+        }
+
+        animePosition = if (isWhitePiece) position + 9 else position - 9
+        if (animePosition in chessBoard.indices && isEnemy(
+                chessBoard[animePosition], isWhitePiece
+            )
+        ) {
+            add(animePosition)
+        }
+
+        add(if (isWhitePiece) position + 8 else position - 8)
+
+        if (position in 8..16 || position in 48..56) {
+            add(if (isWhitePiece) position + 16 else position - 16)
+        }
 
         return list
     }
