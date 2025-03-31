@@ -21,14 +21,14 @@ import androidx.core.graphics.toColorInt
  * Email: sharifuddinjumman@gmail.com
  * Dhaka, Bangladesh.
  */
-class CheckBoard @JvmOverloads constructor(
+class ChessView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val chessFont = ResourcesCompat.getFont(context, R.font.symbola)
+    private val chessFont = ResourcesCompat.getFont(context, R.font.chess_merida_unicode)
     private val paint = Paint()
 
-    private val shadowPaint = Paint().apply {
+    private val chessPiecePaint = Paint().apply {
         style = Paint.Style.FILL
         typeface = chessFont
         textAlign = Paint.Align.CENTER
@@ -156,23 +156,39 @@ class CheckBoard @JvmOverloads constructor(
         val halfSize = size / 2f
 
         paint.color = Color.RED
-        canvas.drawCircle(
-            width / 2f, if (isWhiteTurn) y - halfSize else startY + halfSize, 22f, paint
-        )
 
-        canvas.drawBitmap(bitmap, x + halfSize / 2, y - halfSize, paint)
+        val turnIndicatorY = if (isWhiteTurn) y - halfSize else startY + halfSize
+
+        if (isWhiteTurn) {
+            if (isWhitePawnReachedEnd) {
+                canvas.drawBitmap(bitmap, x + halfSize / 2, turnIndicatorY, paint)
+            } else {
+                canvas.drawCircle(
+                    width / 2f, turnIndicatorY, 22f, paint
+                )
+            }
+        } else {
+            if (isBlackPawnReachedEnd) {
+                canvas.drawBitmap(bitmap, x + halfSize / 2, turnIndicatorY, paint)
+            } else {
+                canvas.drawCircle(
+                    width / 2f, turnIndicatorY, 22f, paint
+                )
+            }
+        }
+
 
     }
 
     private fun drawText(
         canvas: Canvas, color: Int, textSize: Float, text: String, x: Float, y: Float
     ) {
-        shadowPaint.textSize = textSize
-        shadowPaint.setShadowLayer(
+        chessPiecePaint.textSize = textSize
+        chessPiecePaint.setShadowLayer(
             15f, 0f, 0f, if (color == whiteColor) blackColor else whiteColor
         ) // Shadow properties
-        shadowPaint.color = color
-        canvas.drawText(text, x, y, shadowPaint)
+        chessPiecePaint.color = color
+        canvas.drawText(text, x, y, chessPiecePaint)
     }
 
     fun onTouch(event: MotionEvent) {
