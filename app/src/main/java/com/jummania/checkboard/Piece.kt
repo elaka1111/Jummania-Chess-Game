@@ -12,20 +12,8 @@ data class Piece(val symbol: String, val color: Int) {
         return symbol.isEmpty()
     }
 
-    fun isWhite(): Boolean {
-        return color == whiteColor
-    }
-
-    fun isBlack(): Boolean {
-        return color == blackColor
-    }
-
     fun isNotEmpty(): Boolean {
         return !isEmpty()
-    }
-
-    fun isEnemy(isWhitePiece: Boolean): Boolean {
-        return (isWhitePiece && isBlack()) || (!isWhitePiece && !isBlack())
     }
 
     fun isKing(): Boolean {
@@ -50,14 +38,6 @@ data class Piece(val symbol: String, val color: Int) {
 
     fun isPawn(): Boolean {
         return symbol == "♙" || symbol == "♟"
-    }
-
-    fun isWhitePawn(): Boolean {
-        return isPawn() && color == whiteColor
-    }
-
-    fun isBlackPawn(): Boolean {
-        return isPawn() && color == blackColor
     }
 
 }

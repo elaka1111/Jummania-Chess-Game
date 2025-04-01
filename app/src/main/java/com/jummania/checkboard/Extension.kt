@@ -1,25 +1,11 @@
 package com.jummania.checkboard
 
-val emptyChess = Piece(" ", emptyColor)
-
 fun Piece?.isEmpty(): Boolean {
     return this?.isEmpty() ?: true
 }
 
 fun Piece?.isNotEmpty(): Boolean {
     return this?.isNotEmpty() ?: false
-}
-
-fun Piece?.isWhite(): Boolean {
-    return this?.isWhite() ?: false
-}
-
-fun Piece?.isBlack(): Boolean {
-    return this?.isBlack() ?: false
-}
-
-fun Piece?.isEnemy(isWhitePiece: Boolean): Boolean {
-    return this?.isEnemy(isWhitePiece) ?: false
 }
 
 fun Piece?.isKing(): Boolean {
@@ -44,12 +30,4 @@ fun Piece?.isKnight(): Boolean {
 
 fun Piece?.isPawn(): Boolean {
     return this?.isPawn() ?: false
-}
-
-fun Piece?.isWhitePawn(): Boolean {
-    return this?.isWhitePawn() ?: false
-}
-
-fun Piece?.isBlackPawn(): Boolean {
-    return this?.isBlackPawn() ?: false
 }

@@ -10,9 +10,9 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
-import androidx.core.content.ContextCompat
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.toColorInt
 
 
@@ -52,10 +52,12 @@ class ChessView @JvmOverloads constructor(
     private var isWhitePawnReachedEnd = false
     private var isBlackPawnReachedEnd = false
 
-    val bitmap = getBitmapFromVectorDrawable(context, R.drawable.transform)
+    private val bitmap = getBitmapFromVectorDrawable(context, R.drawable.transform)
 
 
     //  private var needToMove = false
+
+    private val chess = Chess()
 
 
     override fun onDraw(canvas: Canvas) {
@@ -98,7 +100,7 @@ class ChessView @JvmOverloads constructor(
                     } else if (!isInvalidate) {
                         isSelected = true
                         selectedRowNumber = rowNumber
-                        selectedPiece = chessBoard[rowNumber - 1]?.symbol ?: ""
+                        selectedPiece = chess.get(rowNumber - 1)?.symbol ?: ""
                     }
 
                     selected = true
@@ -131,8 +133,8 @@ class ChessView @JvmOverloads constructor(
                     )
                 }
 
-                val chess = chessBoard[rowNumber - 1] ?: emptyChess
-                drawPieces(chess.symbol, chess.color)
+                val chess = chess.get(rowNumber - 1)
+                if (chess != null) drawPieces(chess.symbol, chess.color)
 
                 count += 1
             }
@@ -158,22 +160,50 @@ class ChessView @JvmOverloads constructor(
         paint.color = Color.RED
 
         val turnIndicatorY = if (isWhiteTurn) y - halfSize else startY + halfSize
-
+        val leftX = width / 2f
+        val topY = turnIndicatorY - halfSize / 2f
         if (isWhiteTurn) {
-            if (isWhitePawnReachedEnd) {
-                canvas.drawBitmap(bitmap, x + halfSize / 2, turnIndicatorY, paint)
+            if (isWhitePawnReachedEnd && chess.isWhitePawn(chess.get(selectedRowNumber - 1)) && bitmap != null) {
+                canvas.drawBitmap(bitmap, leftX, topY, paint)
             } else {
                 canvas.drawCircle(
-                    width / 2f, turnIndicatorY, 22f, paint
+                    leftX, turnIndicatorY, 22f, paint
                 )
             }
         } else {
-            if (isBlackPawnReachedEnd) {
-                canvas.drawBitmap(bitmap, x + halfSize / 2, turnIndicatorY, paint)
+            if (isBlackPawnReachedEnd && chess.isBlackPawn(chess.get(selectedRowNumber - 1)) && bitmap != null) {
+                canvas.drawBitmap(bitmap, leftX, topY, paint)
             } else {
                 canvas.drawCircle(
-                    width / 2f, turnIndicatorY, 22f, paint
+                    leftX, turnIndicatorY, 22f, paint
                 )
+            }
+        }
+
+
+        if ((isWhitePawnReachedEnd || isBlackPawnReachedEnd) && bitmap != null && touchedX in leftX..leftX + bitmap.width && touchedY in topY..topY + bitmap.height) {/*
+            var position = 0
+            MaterialAlertDialogBuilder(context).setTitle("থিম নির্বাচন করুন")
+                .setPositiveButton("ঠিক আছে") { _, _ ->
+                    val theme = themes[position]
+                    changeTheme(theme)
+                    preference.sharedPreferences?.edit {
+                        putString("theme", theme)
+                    }
+                    preference.summary = theme
+                }.setNegativeButton("বাতিল") { _, _ ->
+
+                }.setSingleChoiceItems(
+                    themes, position
+                ) { _, which ->
+                    position = which
+                }.show()
+
+            */
+            if (isWhiteTurn) {
+
+            } else {
+
             }
         }
 
@@ -185,7 +215,7 @@ class ChessView @JvmOverloads constructor(
     ) {
         chessPiecePaint.textSize = textSize
         chessPiecePaint.setShadowLayer(
-            15f, 0f, 0f, if (color == whiteColor) blackColor else whiteColor
+            15f, 0f, 0f, if (color == chess.whiteColor) chess.blackColor else chess.whiteColor
         ) // Shadow properties
         chessPiecePaint.color = color
         canvas.drawText(text, x, y, chessPiecePaint)
@@ -201,14 +231,14 @@ class ChessView @JvmOverloads constructor(
     }
 
     private fun swapTo(fromIndex: Int, toIndex: Int) {
-        if (fromIndex in chessBoard.indices && toIndex in chessBoard.indices) {
-            val fromPiece = chessBoard[fromIndex] ?: return
+        if (fromIndex in chess.indices() && toIndex in chess.indices()) {
+            val fromPiece = chess.get(fromIndex) ?: return
 
             if (fromPiece.isEmpty()) return
 
-            val toPiece = chessBoard[toIndex]
+            val toPiece = chess.get(toIndex)
 
-            val isFromWhitePiece = fromPiece.isWhite()
+            val isFromWhitePiece = chess.isWhite(fromPiece)
 
             if (isFromWhitePiece && !isWhiteTurn) {
                 message("It's not your turn!")
@@ -266,18 +296,16 @@ class ChessView @JvmOverloads constructor(
             } else return
 
 
-            val isToWhitePiece = toPiece.isWhite()
-
-            val isFromBlackPiece = fromPiece.isBlack()
-            val isToBlackPiece = toPiece.isBlack()
+            val isToWhitePiece = chess.isWhite(toPiece)
+            val isFromBlackPiece = chess.isBlack(fromPiece)
+            val isToBlackPiece = chess.isBlack(toPiece)
 
             if (isFromWhitePiece && isToWhitePiece) {
                 message("White cannot move to white")
             } else if (isFromBlackPiece && isToBlackPiece) {
                 message("Black cannot move to black")
             } else if (fromPiece.isNotEmpty()) {
-                chessBoard[toIndex] = fromPiece
-                chessBoard[fromIndex] = null
+                chess.set(fromIndex, toIndex, fromPiece)
 
                 if (toPiece.isNotEmpty()) {
                     message(
@@ -290,8 +318,9 @@ class ChessView @JvmOverloads constructor(
             }
 
             for (i in 0 until 8) {
-                isWhitePawnReachedEnd = isWhitePawnReachedEnd || chessBoard[56 + i].isWhitePawn()
-                isBlackPawnReachedEnd = isBlackPawnReachedEnd || chessBoard[i].isBlackPawn()
+                isWhitePawnReachedEnd =
+                    isWhitePawnReachedEnd || chess.isWhitePawn(chess.get(56 + i))
+                isBlackPawnReachedEnd = isBlackPawnReachedEnd || chess.isBlackPawn(chess.get(i))
                 if (isWhitePawnReachedEnd && isBlackPawnReachedEnd) break
             }
 
@@ -360,11 +389,11 @@ class ChessView @JvmOverloads constructor(
     }
 
     private fun add(list: MutableList<Int>, pos: Int, isWhitePiece: Boolean): Boolean {
-        if (pos !in chessBoard.indices) return false
-        val piece = chessBoard[pos]
+        if (pos !in chess.indices()) return false
+        val piece = chess.get(pos)
         return if (piece.isEmpty()) {
             list.add(pos)
-        } else if (piece.isEnemy(isWhitePiece)) {
+        } else if (chess.isEnemy(piece, isWhitePiece)) {
             !list.add(pos)
         } else false
     }
@@ -396,17 +425,17 @@ class ChessView @JvmOverloads constructor(
         }
 
         var animePosition = if (isWhitePiece) position + 7 else position - 7
-        if (animePosition in chessBoard.indices && chessBoard[animePosition].isEnemy(isWhitePiece)) {
+        if (chess.isEnemy(chess.get(animePosition), isWhitePiece)) {
             add(animePosition)
         }
 
         animePosition = if (isWhitePiece) position + 8 else position - 8
-        if (animePosition !in chessBoard.indices || !chessBoard[animePosition].isEnemy(isWhitePiece)) add(
-            if (isWhitePiece) position + 8 else position - 8
-        )
+        if (!chess.isEnemy(chess.get(animePosition), isWhitePiece)) {
+            add(animePosition)
+        }
 
         animePosition = if (isWhitePiece) position + 9 else position - 9
-        if (animePosition in chessBoard.indices && chessBoard[animePosition].isEnemy(isWhitePiece)) {
+        if (chess.isEnemy(chess.get(animePosition), isWhitePiece)) {
             add(animePosition)
         }
 
@@ -417,15 +446,8 @@ class ChessView @JvmOverloads constructor(
         return list
     }
 
-    private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap {
-        val drawable = ContextCompat.getDrawable(context, drawableId) ?: return createBitmap(1, 1)
-
-        val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-
-        return bitmap
+    private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
+        return AppCompatResources.getDrawable(context, drawableId)?.toBitmap()
     }
 
 
