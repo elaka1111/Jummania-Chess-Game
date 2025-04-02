@@ -6,7 +6,7 @@ package com.jummania.checkboard
  * Email: sharifuddinjumman@gmail.com
  * Dhaka, Bangladesh.
  */
-data class Piece(val symbol: String, val color: Int) {
+data class Piece(var symbol: String, val color: Int) {
 
     fun isEmpty(): Boolean {
         return symbol.isEmpty()

@@ -6,7 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
@@ -14,6 +13,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.toColorInt
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 /**
@@ -47,17 +47,16 @@ class ChessView @JvmOverloads constructor(
 
     private var isInvalidate = false
 
-    private var isWhiteTurn = true
-
-    private var isWhitePawnReachedEnd = false
-    private var isBlackPawnReachedEnd = false
+    companion object {
+        var isWhiteTurn = true
+    }
 
     private val bitmap = getBitmapFromVectorDrawable(context, R.drawable.transform)
 
 
     //  private var needToMove = false
 
-    private val chess = Chess()
+    private val chess = Chess(context)
 
 
     override fun onDraw(canvas: Canvas) {
@@ -91,7 +90,7 @@ class ChessView @JvmOverloads constructor(
                         selectedRowNumber = -1
                         selectedPiece = ""
                     } else if (isSelected && selectedPiece.isNotEmpty()) {
-                        swapTo(selectedRowNumber - 1, rowNumber - 1)
+                        chess.swapTo(selectedRowNumber - 1, rowNumber - 1)
                         isSelected = false
                         selectedRowNumber = -1
                         isInvalidate = true
@@ -162,17 +161,30 @@ class ChessView @JvmOverloads constructor(
         val turnIndicatorY = if (isWhiteTurn) y - halfSize else startY + halfSize
         val leftX = width / 2f
         val topY = turnIndicatorY - halfSize / 2f
+        var shouldReplace = false
         if (isWhiteTurn) {
-            if (isWhitePawnReachedEnd && chess.isWhitePawn(chess.get(selectedRowNumber - 1)) && bitmap != null) {
+            if (selectedRowNumber in 57..64 && chess.isWhitePawn(
+                    chess.get(
+                        selectedRowNumber - 1
+                    )
+                ) && bitmap != null
+            ) {
                 canvas.drawBitmap(bitmap, leftX, topY, paint)
+                shouldReplace = true
             } else {
                 canvas.drawCircle(
                     leftX, turnIndicatorY, 22f, paint
                 )
             }
         } else {
-            if (isBlackPawnReachedEnd && chess.isBlackPawn(chess.get(selectedRowNumber - 1)) && bitmap != null) {
+            if (selectedRowNumber in 1..8 && chess.isBlackPawn(
+                    chess.get(
+                        selectedRowNumber - 1
+                    )
+                ) && bitmap != null
+            ) {
                 canvas.drawBitmap(bitmap, leftX, topY, paint)
+                shouldReplace = true
             } else {
                 canvas.drawCircle(
                     leftX, turnIndicatorY, 22f, paint
@@ -181,30 +193,27 @@ class ChessView @JvmOverloads constructor(
         }
 
 
-        if ((isWhitePawnReachedEnd || isBlackPawnReachedEnd) && bitmap != null && touchedX in leftX..leftX + bitmap.width && touchedY in topY..topY + bitmap.height) {/*
+        if (shouldReplace && bitmap != null && touchedX in leftX..leftX + bitmap.width && touchedY in topY..topY + bitmap.height) {
+            val symbols = if (isWhiteTurn) chess.getWhiteSymbols() else chess.getBlackPiece()
             var position = 0
-            MaterialAlertDialogBuilder(context).setTitle("থিম নির্বাচন করুন")
-                .setPositiveButton("ঠিক আছে") { _, _ ->
-                    val theme = themes[position]
-                    changeTheme(theme)
-                    preference.sharedPreferences?.edit {
-                        putString("theme", theme)
-                    }
-                    preference.summary = theme
-                }.setNegativeButton("বাতিল") { _, _ ->
 
+            MaterialAlertDialogBuilder(context).setTitle("Promote Your Pawn")
+                .setPositiveButton("Okay") { _, _ ->
+                    val symbol = symbols[position] ?: return@setPositiveButton
+                    chess.set(selectedRowNumber - 1, symbol)
+                    message("The Pawn Promoted to $symbol")
+                    touchedX = 0f
+                    touchedY = 0f
+                    selectedRowNumber = -1
+                    isInvalidate = true
+                    selectedPiece = ""
+                    invalidate()
+                }.setNegativeButton("Cancel") { _, _ ->
                 }.setSingleChoiceItems(
-                    themes, position
+                    symbols, position
                 ) { _, which ->
                     position = which
                 }.show()
-
-            */
-            if (isWhiteTurn) {
-
-            } else {
-
-            }
         }
 
 
@@ -230,224 +239,12 @@ class ChessView @JvmOverloads constructor(
         }
     }
 
-    private fun swapTo(fromIndex: Int, toIndex: Int) {
-        if (fromIndex in chess.indices() && toIndex in chess.indices()) {
-            val fromPiece = chess.get(fromIndex) ?: return
-
-            if (fromPiece.isEmpty()) return
-
-            val toPiece = chess.get(toIndex)
-
-            val isFromWhitePiece = chess.isWhite(fromPiece)
-
-            if (isFromWhitePiece && !isWhiteTurn) {
-                message("It's not your turn!")
-                return
-            } else if (!isFromWhitePiece && isWhiteTurn) {
-                message("It's not your turn!")
-                return
-            }
-
-            fun getSequence(
-                sequence: Int, horizontal: Boolean, vertical: Boolean, diagonal: Boolean
-            ): List<Int> {
-                return getSequence(
-                    fromIndex, sequence, isFromWhitePiece, horizontal, vertical, diagonal
-                )
-            }
-
-            if (fromPiece.isKing()) {
-                val sequence = getSequence(2, true, true, false)
-                if (toIndex !in sequence) {
-                    message("The King can only move one square in any direction.")
-                    return
-                }
-            } else if (fromPiece.isRook()) {
-                val sequence = getSequence(8, true, true, false)
-                if (toIndex !in sequence) {
-                    message("The Rook can only move one square in any direction.")
-                    return
-                }
-            } else if (fromPiece.isBishop()) {
-                val sequence = getSequence(8, false, false, true)
-                if (toIndex !in sequence) {
-                    message("The Bishop can only move one square diagonally.")
-                    return
-                }
-            } else if (fromPiece.isQueen()) {
-                val sequence = getSequence(8, true, true, true)
-                if (toIndex !in sequence) {
-                    message("The Queen can only move one square in any direction.")
-                    return
-                }
-            } else if (fromPiece.isKnight()) {
-                val sequence = getKnightSequence(fromIndex, isFromWhitePiece)
-                if (toIndex !in sequence) {
-                    message("The Knight can only move in an L shape.")
-                    return
-                }
-            } else if (fromPiece.isPawn()) {
-                Log.d("Jjj", "swapTo: true")
-                val sequence = getPawnSequence(fromIndex, isFromWhitePiece)
-                if (toIndex !in sequence) {
-                    message("The Pawn can only move one square forward.")
-                    return
-                }
-            } else return
-
-
-            val isToWhitePiece = chess.isWhite(toPiece)
-            val isFromBlackPiece = chess.isBlack(fromPiece)
-            val isToBlackPiece = chess.isBlack(toPiece)
-
-            if (isFromWhitePiece && isToWhitePiece) {
-                message("White cannot move to white")
-            } else if (isFromBlackPiece && isToBlackPiece) {
-                message("Black cannot move to black")
-            } else if (fromPiece.isNotEmpty()) {
-                chess.set(fromIndex, toIndex, fromPiece)
-
-                if (toPiece.isNotEmpty()) {
-                    message(
-                        String.format(
-                            "%s attacks and captures %s!", fromPiece.symbol, toPiece?.symbol
-                        )
-                    )
-                }
-
-            }
-
-            for (i in 0 until 8) {
-                isWhitePawnReachedEnd =
-                    isWhitePawnReachedEnd || chess.isWhitePawn(chess.get(56 + i))
-                isBlackPawnReachedEnd = isBlackPawnReachedEnd || chess.isBlackPawn(chess.get(i))
-                if (isWhitePawnReachedEnd && isBlackPawnReachedEnd) break
-            }
-
-            isWhiteTurn = !isFromWhitePiece
-        }
+    private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
+        return AppCompatResources.getDrawable(context, drawableId)?.toBitmap()
     }
 
     private fun message(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun getSequence(
-        position: Int,
-        sequence: Int,
-        isWhitePiece: Boolean,
-        horizontal: Boolean,
-        vertical: Boolean,
-        diagonal: Boolean
-    ): List<Int> {
-        val list = mutableListOf<Int>()
-
-        var left = horizontal
-        var right = horizontal
-        var up = vertical
-        var down = vertical
-        var upLeft = diagonal
-        var upRight = diagonal
-        var downLeft = diagonal
-        var downRight = diagonal
-
-        val leftLimit = position - (position % 8)
-        val rightLimit = leftLimit + 8
-
-        fun add(pos: Int): Boolean {
-            return add(list, pos, isWhitePiece)
-        }
-
-        for (i in 1 until sequence) {
-
-            if (left) {
-                val pos = position - 1 * i
-                left = if (pos >= leftLimit) add(pos)
-                else false
-
-            }
-
-            if (right) {
-                val pos = position + 1 * i
-                right = if (pos <= rightLimit) add(pos)
-                else false
-            }
-
-            if (up) up = add(position + 8 * i)
-
-            if (down) down = add(position - 8 * i)
-
-            if (upLeft) upLeft = add(position + 7 * i)
-
-            if (upRight) upRight = add(position + 9 * i)
-
-            if (downLeft) downLeft = add(position - 9 * i)
-
-            if (downRight) downRight = add(position - 7 * i)
-        }
-        return list
-    }
-
-    private fun add(list: MutableList<Int>, pos: Int, isWhitePiece: Boolean): Boolean {
-        if (pos !in chess.indices()) return false
-        val piece = chess.get(pos)
-        return if (piece.isEmpty()) {
-            list.add(pos)
-        } else if (chess.isEnemy(piece, isWhitePiece)) {
-            !list.add(pos)
-        } else false
-    }
-
-    private fun getKnightSequence(position: Int, isWhitePiece: Boolean): List<Int> {
-        val list = mutableListOf<Int>()
-
-        fun add(pos: Int) {
-            add(list, pos, isWhitePiece)
-        }
-
-        add(position + 6)
-        add(position - 6)
-        add(position + 10)
-        add(position - 10)
-        add(position + 15)
-        add(position - 15)
-        add(position + 17)
-        add(position - 17)
-
-        return list
-    }
-
-    private fun getPawnSequence(position: Int, isWhitePiece: Boolean): List<Int> {
-        val list = mutableListOf<Int>()
-
-        fun add(pos: Int) {
-            add(list, pos, isWhitePiece)
-        }
-
-        var animePosition = if (isWhitePiece) position + 7 else position - 7
-        if (chess.isEnemy(chess.get(animePosition), isWhitePiece)) {
-            add(animePosition)
-        }
-
-        animePosition = if (isWhitePiece) position + 8 else position - 8
-        if (!chess.isEnemy(chess.get(animePosition), isWhitePiece)) {
-            add(animePosition)
-        }
-
-        animePosition = if (isWhitePiece) position + 9 else position - 9
-        if (chess.isEnemy(chess.get(animePosition), isWhitePiece)) {
-            add(animePosition)
-        }
-
-        if (position in 8..16 || position in 48..56) {
-            add(if (isWhitePiece) position + 16 else position - 16)
-        }
-
-        return list
-    }
-
-    private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
-        return AppCompatResources.getDrawable(context, drawableId)?.toBitmap()
     }
 
 
