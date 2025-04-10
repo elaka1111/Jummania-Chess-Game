@@ -1,10 +1,10 @@
-package com.jummania.checkboard
+package com.jummania
 
 import android.content.Context
 import android.graphics.Color
 import android.util.Log
 import android.widget.Toast
-import com.jummania.checkboard.ChessView.Companion.isWhiteTurn
+import com.jummania.ChessView.Companion.isWhiteTurn
 
 
 /**
@@ -40,12 +40,37 @@ class Chess(private val context: Context) {
         Piece("♜", blackColor)  // Rook
     )
 
-    private val chessBoard = mutableListOf<Piece?>().also {
-        it.addAll(whitePiece)
-        for (i in 0 until 8) it.add(Piece("♟", whiteColor))
-        for (i in 0 until 32) it.add(null)
-        for (i in 0 until 8) it.add(Piece("♟", blackColor))
-        it.addAll(blackPiece)
+    private val chessBoard = mutableListOf<Piece?>()
+
+    init {
+        chessBoard.addAll(whitePiece)
+        for (i in 0 until 8) chessBoard.add(Piece("♟", whiteColor))
+        for (i in 0 until 32) chessBoard.add(null)
+        for (i in 0 until 8) chessBoard.add(Piece("♟", blackColor))
+        chessBoard.addAll(blackPiece)
+    }
+
+    private val whitePromotedSymbols by lazy {
+        val array = arrayOfNulls<String>(4)
+        for (i in whitePiece.indices) {
+            val piece = whitePiece[i]
+            if (piece.isQueen() || piece.isRook() || piece.isBishop() || piece.isKnight()) {
+                val symbol = piece.symbol
+                if (!array.contains(symbol)) array[i] = symbol
+            }
+        }
+        array
+    }
+    private val blackPromotedSymbols by lazy {
+        val array = arrayOfNulls<String>(4)
+        for (i in blackPiece.indices) {
+            val piece = blackPiece[i]
+            if (piece.isQueen() || piece.isRook() || piece.isBishop() || piece.isKnight()) {
+                val symbol = piece.symbol
+                if (!array.contains(symbol)) array[i] = symbol
+            }
+        }
+        array
     }
 
     fun get(position: Int): Piece? {
@@ -90,19 +115,11 @@ class Chess(private val context: Context) {
     }
 
     fun getWhiteSymbols(): Array<String?> {
-        val array = arrayOfNulls<String>(whitePiece.size)
-        for (i in whitePiece.indices) {
-            array[i] = whitePiece[i].symbol
-        }
-        return array
+        return whitePromotedSymbols
     }
 
     fun getBlackPiece(): Array<String?> {
-        val array = arrayOfNulls<String>(blackPiece.size)
-        for (i in blackPiece.indices) {
-            array[i] = blackPiece[i].symbol
-        }
-        return array
+        return blackPromotedSymbols
     }
 
     fun swapTo(fromIndex: Int, toIndex: Int) {

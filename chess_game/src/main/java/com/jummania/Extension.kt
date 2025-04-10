@@ -1,4 +1,4 @@
-package com.jummania.checkboard
+package com.jummania
 
 fun Piece?.isEmpty(): Boolean {
     return this?.isEmpty() ?: true

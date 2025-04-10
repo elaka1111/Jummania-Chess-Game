@@ -1,4 +1,4 @@
-package com.jummania.checkboard
+package com.jummania
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.MotionEvent
+import android.view.SoundEffectConstants
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
@@ -43,7 +44,6 @@ class ChessView @JvmOverloads constructor(
 
     private var isSelected = false
     private var selectedRowNumber = -1
-    private var selectedPiece = ""
 
     private var isInvalidate = false
 
@@ -53,10 +53,11 @@ class ChessView @JvmOverloads constructor(
 
     private val bitmap = getBitmapFromVectorDrawable(context, R.drawable.transform)
 
-
-    //  private var needToMove = false
-
     private val chess = Chess(context)
+
+    init {
+        setBackgroundColor(Color.WHITE)
+    }
 
 
     override fun onDraw(canvas: Canvas) {
@@ -67,7 +68,7 @@ class ChessView @JvmOverloads constructor(
         val y = (height - min) / 2f
         val size = min / 8
 
-        var count = 0
+        var isDarkSquare = false
         var rowNumber = 0
 
         var selected = false
@@ -88,25 +89,22 @@ class ChessView @JvmOverloads constructor(
                     if (selectedRowNumber == rowNumber && isSelected) {
                         isSelected = false
                         selectedRowNumber = -1
-                        selectedPiece = ""
-                    } else if (isSelected && selectedPiece.isNotEmpty()) {
+                    } else if (isSelected && selectedRowNumber > 0) {
                         chess.swapTo(selectedRowNumber - 1, rowNumber - 1)
                         isSelected = false
                         selectedRowNumber = -1
                         isInvalidate = true
-                        selectedPiece = ""
                         invalidate()
                     } else if (!isInvalidate) {
                         isSelected = true
                         selectedRowNumber = rowNumber
-                        selectedPiece = chess.get(rowNumber - 1)?.symbol ?: ""
                     }
 
                     selected = true
                 }
 
                 paint.style = Paint.Style.FILL
-                paint.color = if (count % 2 == 0) darkColor else lightColor
+                paint.color = if (isDarkSquare) darkColor else lightColor
                 canvas.drawRect(left, top, right, bottom, paint)
 
 
@@ -135,9 +133,9 @@ class ChessView @JvmOverloads constructor(
                 val chess = chess.get(rowNumber - 1)
                 if (chess != null) drawPieces(chess.symbol, chess.color)
 
-                count += 1
+                isDarkSquare = !isDarkSquare
             }
-            count += 1
+            isDarkSquare = !isDarkSquare
         }
 
         if (!selected) isSelected = false
@@ -206,7 +204,6 @@ class ChessView @JvmOverloads constructor(
                     touchedY = 0f
                     selectedRowNumber = -1
                     isInvalidate = true
-                    selectedPiece = ""
                     invalidate()
                 }.setNegativeButton("Cancel") { _, _ ->
                 }.setSingleChoiceItems(
@@ -230,15 +227,6 @@ class ChessView @JvmOverloads constructor(
         canvas.drawText(text, x, y, chessPiecePaint)
     }
 
-    fun onTouch(event: MotionEvent) {
-        if (event.action == MotionEvent.ACTION_DOWN) {
-            touchedX = event.x
-            touchedY = event.y
-            invalidate()
-            isInvalidate = false
-        }
-    }
-
     private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
         return AppCompatResources.getDrawable(context, drawableId)?.toBitmap()
     }
@@ -247,5 +235,20 @@ class ChessView @JvmOverloads constructor(
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
+    override fun performClick(): Boolean {
+        playSoundEffect(SoundEffectConstants.CLICK)
+        invalidate()
+        isInvalidate = false
+        return super.performClick()
+    }
 
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if (event?.action == MotionEvent.ACTION_DOWN) {
+            touchedX = event.x
+            touchedY = event.y
+            performClick()
+            return true
+        }
+        return super.onTouchEvent(event)
+    }
 }

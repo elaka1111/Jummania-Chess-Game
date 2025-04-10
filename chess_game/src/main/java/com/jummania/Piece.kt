@@ -1,4 +1,4 @@
-package com.jummania.checkboard
+package com.jummania
 
 
 /**
