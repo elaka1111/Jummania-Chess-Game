@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-03-26T20:27:34.422094015Z">
+        <DropdownSelection timestamp="2025-04-11T16:35:13.891609048Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=NJGJ00701F49" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=/home/jumman/.android/avd/Resizable_Experimental_API_35.avd" />
             </handle>
           </Target>
         </DropdownSelection>

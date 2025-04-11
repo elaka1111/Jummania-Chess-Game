@@ -50,30 +50,40 @@ class ChessView @JvmOverloads constructor(
 
     init {
 
-        context.theme.obtainStyledAttributes(
+        val typedArray = context.theme.obtainStyledAttributes(
             attrs, R.styleable.ChessView, defStyleAttr, defStyleAttr
-        ).use {
+        )
 
+        try {
             setPieceStyle(
-                it.getBoolean(R.styleable.ChessView_isLightFilled, true),
-                it.getBoolean(R.styleable.ChessView_isDarkFilled, true),
-                it.getColor(R.styleable.ChessView_pieceLightColor, Color.WHITE),
-                it.getColor(R.styleable.ChessView_pieceDarkColor, Color.BLACK)
+                typedArray.getBoolean(R.styleable.ChessView_isLightFilled, true),
+                typedArray.getBoolean(R.styleable.ChessView_isDarkFilled, true),
+                typedArray.getColor(R.styleable.ChessView_pieceLightColor, Color.WHITE),
+                typedArray.getColor(R.styleable.ChessView_pieceDarkColor, Color.BLACK)
             )
 
             setSquareColors(
-                it.getColor(R.styleable.ChessView_lightSquareColor, lightSquareColor),
-                it.getColor(R.styleable.ChessView_darkSquareColor, darkSquareColor)
+                typedArray.getColor(R.styleable.ChessView_lightSquareColor, lightSquareColor),
+                typedArray.getColor(R.styleable.ChessView_darkSquareColor, darkSquareColor)
             )
 
-            setSymbolStyle(SymbolStyle.fromInt(it.getInt(R.styleable.ChessView_symbolStyle, 1)))
-
-            symbolPaint.style = Paint.Style.FILL
-            symbolPaint.textAlign = Paint.Align.CENTER
-            paint.textAlign = Paint.Align.CENTER
-            symbolPaint.isAntiAlias = true
-
+            setSymbolStyle(
+                SymbolStyle.fromInt(
+                    typedArray.getInt(
+                        R.styleable.ChessView_symbolStyle,
+                        1
+                    )
+                )
+            )
+        } finally {
+            typedArray.recycle() // always recycle manually
         }
+
+        symbolPaint.style = Paint.Style.FILL
+        symbolPaint.textAlign = Paint.Align.CENTER
+        paint.textAlign = Paint.Align.CENTER
+        symbolPaint.isAntiAlias = true
+
 
         setBackgroundColor(Color.WHITE)
     }
