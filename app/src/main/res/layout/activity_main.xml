@@ -13,4 +13,4 @@
     chess:pieceDarkColor="#000"
     chess:pieceLightColor="#fff"
 
-    chess:symbolStyle="merida" />
+    chess:symbolStyle="symbola" />
