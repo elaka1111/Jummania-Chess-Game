@@ -1,7 +1,6 @@
 package com.jummania
 
 import android.content.Context
-import android.graphics.Color
 import android.util.Log
 import android.widget.Toast
 import com.jummania.ChessView.Companion.isWhiteTurn
@@ -14,63 +13,78 @@ import com.jummania.ChessView.Companion.isWhiteTurn
  */
 
 
-class Chess(private val context: Context) {
-    val whiteColor = Color.WHITE
-    val blackColor = Color.BLACK
+internal class ChessController(
+    private val context: Context,
+    val isLightFilled: Boolean,
+    val isDarkFilled: Boolean,
+    val pieceLightColor: Int,
+    val pieceDarkColor: Int
+) {
 
-    private val whitePiece = listOf(
-        Piece("♜", whiteColor), // Rook
-        Piece("♞", whiteColor), // Knight
-        Piece("♝", whiteColor), // Bishop
-        Piece("♛", whiteColor), // Queen
-        Piece("♚", whiteColor), // King
-        Piece("♝", whiteColor), // Bishop
-        Piece("♞", whiteColor), // Knight
-        Piece("♜", whiteColor)  // Rook
-    )
+    private val lightFilledPieces by lazy {
+        arrayOf(
+            Piece("♜", pieceLightColor), // Rook
+            Piece("♞", pieceLightColor), // Knight
+            Piece("♝", pieceLightColor), // Bishop
+            Piece("♛", pieceLightColor), // Queen
+            Piece("♚", pieceLightColor), // King
+            Piece("♝", pieceLightColor), // Bishop
+            Piece("♞", pieceLightColor), // Knight
+            Piece("♜", pieceLightColor)  // Rook
+        )
+    }
 
-    private val blackPiece = listOf(
-        Piece("♜", blackColor), // Rook
-        Piece("♞", blackColor), // Knight
-        Piece("♝", blackColor), // Bishop
-        Piece("♛", blackColor), // Queen
-        Piece("♚", blackColor), // King
-        Piece("♝", blackColor), // Bishop
-        Piece("♞", blackColor), // Knight
-        Piece("♜", blackColor)  // Rook
-    )
+    private val darkFilledPieces by lazy {
+        arrayOf(
+            Piece("♜", pieceDarkColor), // Rook
+            Piece("♞", pieceDarkColor), // Knight
+            Piece("♝", pieceDarkColor), // Bishop
+            Piece("♛", pieceDarkColor), // Queen
+            Piece("♚", pieceDarkColor), // King
+            Piece("♝", pieceDarkColor), // Bishop
+            Piece("♞", pieceDarkColor), // Knight
+            Piece("♜", pieceDarkColor)  // Rook
+        )
+    }
 
-    private val chessBoard = mutableListOf<Piece?>()
+    private val lightUnfilledPieces by lazy {
+        arrayOf(
+            Piece("♖", pieceLightColor), // Rook
+            Piece("♘", pieceLightColor), // Knight
+            Piece("♗", pieceLightColor), // Bishop
+            Piece("♕", pieceLightColor), // Queen
+            Piece("♔", pieceLightColor), // King
+            Piece("♗", pieceLightColor), // Bishop
+            Piece("♘", pieceLightColor), // Knight
+            Piece("♖", pieceLightColor)  // Rook
+        )
+    }
+
+    private val darkUnfilledPieces by lazy {
+        arrayOf(
+            Piece("♖", pieceDarkColor), // Rook
+            Piece("♘", pieceDarkColor), // Knight
+            Piece("♗", pieceDarkColor), // Bishop
+            Piece("♕", pieceDarkColor), // Queen
+            Piece("♔", pieceDarkColor), // King
+            Piece("♗", pieceDarkColor), // Bishop
+            Piece("♘", pieceDarkColor), // Knight
+            Piece("♖", pieceDarkColor)  // Rook
+        )
+    }
+
+
+    private val lightPieces = if (isLightFilled) lightFilledPieces else lightUnfilledPieces
+    private val darkPieces = if (isDarkFilled) darkFilledPieces else darkUnfilledPieces
+    private val chessBoard = arrayOfNulls<Piece>(64)
 
     init {
-        chessBoard.addAll(whitePiece)
-        for (i in 0 until 8) chessBoard.add(Piece("♟", whiteColor))
-        for (i in 0 until 32) chessBoard.add(null)
-        for (i in 0 until 8) chessBoard.add(Piece("♟", blackColor))
-        chessBoard.addAll(blackPiece)
-    }
-
-    private val whitePromotedSymbols by lazy {
-        val array = arrayOfNulls<String>(4)
-        for (i in whitePiece.indices) {
-            val piece = whitePiece[i]
-            if (piece.isQueen() || piece.isRook() || piece.isBishop() || piece.isKnight()) {
-                val symbol = piece.symbol
-                if (!array.contains(symbol)) array[i] = symbol
-            }
-        }
-        array
-    }
-    private val blackPromotedSymbols by lazy {
-        val array = arrayOfNulls<String>(4)
-        for (i in blackPiece.indices) {
-            val piece = blackPiece[i]
-            if (piece.isQueen() || piece.isRook() || piece.isBishop() || piece.isKnight()) {
-                val symbol = piece.symbol
-                if (!array.contains(symbol)) array[i] = symbol
-            }
-        }
-        array
+        for (i in lightPieces.indices) chessBoard[i] = lightPieces[i]
+        val lightPawnSymbol = if (isLightFilled) "♟" else "♙"
+        for (i in 8 until 16) chessBoard[i] = Piece(lightPawnSymbol, pieceLightColor)
+        val darkPawnSymbol = if (isDarkFilled) "♟" else "♙"
+        for (i in 48 until 56) chessBoard[i] = Piece(darkPawnSymbol, pieceDarkColor)
+        for (i in darkPieces.indices) chessBoard[56 + i] = darkPieces[i]
     }
 
     fun get(position: Int): Piece? {
@@ -87,50 +101,46 @@ class Chess(private val context: Context) {
         get(position)?.symbol = symbol
     }
 
-    fun indices(): IntRange {
+    private fun indices(): IntRange {
         return chessBoard.indices
     }
 
-    fun isWhite(piece: Piece?): Boolean {
-        return piece?.color == whiteColor
+    fun isLightPiece(piece: Piece?): Boolean {
+        return piece?.color == pieceLightColor
     }
 
-    fun isBlack(piece: Piece?): Boolean {
-        return piece?.color == blackColor
+    private fun isDarkPiece(piece: Piece?): Boolean {
+        return piece?.color == pieceDarkColor
     }
 
     fun isWhitePawn(piece: Piece?): Boolean {
         if (piece == null) return false
-        return piece.isPawn() && piece.color == whiteColor
+        return piece.isPawn() && piece.color == pieceLightColor
     }
 
     fun isBlackPawn(piece: Piece?): Boolean {
         if (piece == null) return false
-        return piece.isPawn() && piece.color == blackColor
+        return piece.isPawn() && piece.color == pieceDarkColor
     }
 
-    fun isEnemy(piece: Piece?, isWhitePiece: Boolean): Boolean {
-        if (piece.isEmpty()) return false
-        return (isWhitePiece && isBlack(piece)) || (!isWhitePiece && !isBlack(piece))
+    private fun isEnemy(piece: Piece?, isWhitePiece: Boolean): Boolean {
+        if (piece == null) return false
+        return (isWhitePiece && isDarkPiece(piece)) || (!isWhitePiece && !isDarkPiece(piece))
     }
 
-    fun getWhiteSymbols(): Array<String?> {
-        return whitePromotedSymbols
-    }
-
-    fun getBlackPiece(): Array<String?> {
-        return blackPromotedSymbols
+    fun getPromotedSymbols(isWhiteTurn: Boolean): Array<String> {
+        val filled = if (isWhiteTurn) isLightFilled else isDarkFilled
+        return if (filled) arrayOf("♛", "♜", "♝", "♞") // Filled (dark style)
+        else arrayOf("♕", "♖", "♗", "♘") // Unfilled (light style)
     }
 
     fun swapTo(fromIndex: Int, toIndex: Int) {
         if (fromIndex in indices() && toIndex in indices()) {
             val fromPiece = get(fromIndex) ?: return
 
-            if (fromPiece.isEmpty()) return
-
             val toPiece = get(toIndex)
 
-            val isFromWhitePiece = isWhite(fromPiece)
+            val isFromWhitePiece = isLightPiece(fromPiece)
 
             if (isFromWhitePiece && !isWhiteTurn) {
                 message("It's not your turn!")
@@ -149,25 +159,25 @@ class Chess(private val context: Context) {
             }
 
             if (fromPiece.isKing()) {
-                val sequence = getSequence(2, true, true, false)
+                val sequence = getSequence(2, horizontal = true, vertical = true, diagonal = false)
                 if (toIndex !in sequence) {
                     message("The King can only move one square in any direction.")
                     return
                 }
             } else if (fromPiece.isRook()) {
-                val sequence = getSequence(8, true, true, false)
+                val sequence = getSequence(8, horizontal = true, vertical = true, diagonal = false)
                 if (toIndex !in sequence) {
                     message("The Rook can only move one square in any direction.")
                     return
                 }
             } else if (fromPiece.isBishop()) {
-                val sequence = getSequence(8, false, false, true)
+                val sequence = getSequence(8, horizontal = false, vertical = false, diagonal = true)
                 if (toIndex !in sequence) {
                     message("The Bishop can only move one square diagonally.")
                     return
                 }
             } else if (fromPiece.isQueen()) {
-                val sequence = getSequence(8, true, true, true)
+                val sequence = getSequence(8, horizontal = true, vertical = true, diagonal = true)
                 if (toIndex !in sequence) {
                     message("The Queen can only move one square in any direction.")
                     return
@@ -188,21 +198,21 @@ class Chess(private val context: Context) {
             } else return
 
 
-            val isToWhitePiece = isWhite(toPiece)
-            val isFromBlackPiece = isBlack(fromPiece)
-            val isToBlackPiece = isBlack(toPiece)
+            val isToWhitePiece = isLightPiece(toPiece)
+            val isFromBlackPiece = isDarkPiece(fromPiece)
+            val isToBlackPiece = isDarkPiece(toPiece)
 
             if (isFromWhitePiece && isToWhitePiece) {
                 message("White cannot move to white")
             } else if (isFromBlackPiece && isToBlackPiece) {
                 message("Black cannot move to black")
-            } else if (fromPiece.isNotEmpty()) {
+            } else {
                 set(fromIndex, toIndex, fromPiece)
 
-                if (toPiece.isNotEmpty()) {
+                if (toPiece != null) {
                     message(
                         String.format(
-                            "%s attacks and captures %s!", fromPiece.symbol, toPiece?.symbol
+                            "%s attacks and captures %s!", fromPiece.symbol, toPiece.symbol
                         )
                     )
                 }
@@ -276,7 +286,7 @@ class Chess(private val context: Context) {
     private fun add(list: MutableList<Int>, pos: Int, isWhitePiece: Boolean): Boolean {
         if (pos !in indices()) return false
         val piece = get(pos)
-        return if (piece.isEmpty()) {
+        return if (piece == null) {
             list.add(pos)
         } else if (isEnemy(piece, isWhitePiece)) {
             !list.add(pos)
@@ -329,6 +339,26 @@ class Chess(private val context: Context) {
         }
 
         return list
+    }
+
+    fun transform(symbol: String): String {
+        return when (symbol) {
+            "♙" -> "♟"
+            "♖" -> "♜"
+            "♘" -> "♞"
+            "♗" -> "♝"
+            "♕" -> "♛"
+            "♔" -> "♚"
+
+            "♟" -> "♙"
+            "♜" -> "♖"
+            "♞" -> "♘"
+            "♝" -> "♗"
+            "♛" -> "♕"
+            "♚" -> "♔"
+
+            else -> symbol
+        }
     }
 
 }

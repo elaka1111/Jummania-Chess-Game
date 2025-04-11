@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.SoundEffectConstants
@@ -26,42 +27,59 @@ class ChessView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val chessFont = ResourcesCompat.getFont(context, R.font.chess_merida_unicode)
     private val paint = Paint()
-
-    private val chessPiecePaint = Paint().apply {
-        style = Paint.Style.FILL
-        typeface = chessFont
-        textAlign = Paint.Align.CENTER
-        isAntiAlias = true
-    }
-    private var darkColor = "#739654".toColorInt()
-    private var lightColor = "#ebeed3".toColorInt()
-
-    private var touchedX: Float = 0f
-    private var touchedY: Float = 0f
-
+    private val symbolPaint = Paint()
 
     private var isSelected = false
-    private var selectedRowNumber = -1
-
     private var isInvalidate = false
 
     companion object {
         var isWhiteTurn = true
     }
 
-    private val bitmap = getBitmapFromVectorDrawable(context, R.drawable.transform)
+    private val bitmap by lazy { getBitmapFromVectorDrawable(context, R.drawable.transform) }
 
-    private val chess = Chess(context)
+    private lateinit var chessController: ChessController
+
+    private var touchedX: Float = 0f
+    private var touchedY: Float = 0f
+
+    private var selectedRowNumber = -1
+    private var darkSquareColor: Int = "#739654".toColorInt()
+    private var lightSquareColor: Int = "#ebeed3".toColorInt()
 
     init {
+
+        context.theme.obtainStyledAttributes(
+            attrs, R.styleable.ChessView, defStyleAttr, defStyleAttr
+        ).use {
+
+            setPieceStyle(
+                it.getBoolean(R.styleable.ChessView_isLightFilled, true),
+                it.getBoolean(R.styleable.ChessView_isDarkFilled, true),
+                it.getColor(R.styleable.ChessView_pieceLightColor, Color.WHITE),
+                it.getColor(R.styleable.ChessView_pieceDarkColor, Color.BLACK)
+            )
+
+            setSquareColors(
+                it.getColor(R.styleable.ChessView_lightSquareColor, lightSquareColor),
+                it.getColor(R.styleable.ChessView_darkSquareColor, darkSquareColor)
+            )
+
+            setSymbolStyle(SymbolStyle.fromInt(it.getInt(R.styleable.ChessView_symbolStyle, 1)))
+
+            symbolPaint.style = Paint.Style.FILL
+            symbolPaint.textAlign = Paint.Align.CENTER
+            paint.textAlign = Paint.Align.CENTER
+            symbolPaint.isAntiAlias = true
+
+        }
+
         setBackgroundColor(Color.WHITE)
     }
 
 
     override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
 
         val min = minOf(height, width) - 55
         val x = (width - min) / 2f
@@ -90,7 +108,7 @@ class ChessView @JvmOverloads constructor(
                         isSelected = false
                         selectedRowNumber = -1
                     } else if (isSelected && selectedRowNumber > 0) {
-                        chess.swapTo(selectedRowNumber - 1, rowNumber - 1)
+                        chessController.swapTo(selectedRowNumber - 1, rowNumber - 1)
                         isSelected = false
                         selectedRowNumber = -1
                         isInvalidate = true
@@ -104,7 +122,7 @@ class ChessView @JvmOverloads constructor(
                 }
 
                 paint.style = Paint.Style.FILL
-                paint.color = if (isDarkSquare) darkColor else lightColor
+                paint.color = if (isDarkSquare) darkSquareColor else lightSquareColor
                 canvas.drawRect(left, top, right, bottom, paint)
 
 
@@ -119,19 +137,12 @@ class ChessView @JvmOverloads constructor(
                     )
                 }
 
-                fun drawPieces(text: String, chessColor: Int) {
-                    drawText(
-                        canvas,
-                        chessColor,
-                        size * 0.6f,
-                        text,
-                        left + (size / 2),
-                        top + (size / 1.5f)
+                val piece = chessController.get(rowNumber - 1)
+                if (piece != null) {
+                    drawSymbol(
+                        canvas, size * 0.6f, piece, left + (size / 2), top + (size / 1.5f)
                     )
                 }
-
-                val chess = chess.get(rowNumber - 1)
-                if (chess != null) drawPieces(chess.symbol, chess.color)
 
                 isDarkSquare = !isDarkSquare
             }
@@ -150,7 +161,9 @@ class ChessView @JvmOverloads constructor(
 
         canvas.drawRect(x, y, startX, startY, paint)
 
-        drawText(canvas, Color.BLACK, 100f, "Chess"/*"♔♕♖♗♘♙ ♚♛♜♝♞♟"*/, width / 2f, y - size)
+        paint.textSize = size / 2f
+        paint.color = Color.BLACK
+        canvas.drawText("Jummania Chess Game", width / 2f, y - size, paint)
 
         val halfSize = size / 2f
 
@@ -161,13 +174,13 @@ class ChessView @JvmOverloads constructor(
         val topY = turnIndicatorY - halfSize / 2f
         var shouldReplace = false
         if (isWhiteTurn) {
-            if (selectedRowNumber in 57..64 && chess.isWhitePawn(
-                    chess.get(
+            if (selectedRowNumber in 57..64 && chessController.isWhitePawn(
+                    chessController.get(
                         selectedRowNumber - 1
                     )
                 ) && bitmap != null
             ) {
-                canvas.drawBitmap(bitmap, leftX, topY, paint)
+                canvas.drawBitmap(bitmap!!, leftX, topY, paint)
                 shouldReplace = true
             } else {
                 canvas.drawCircle(
@@ -175,13 +188,13 @@ class ChessView @JvmOverloads constructor(
                 )
             }
         } else {
-            if (selectedRowNumber in 1..8 && chess.isBlackPawn(
-                    chess.get(
+            if (selectedRowNumber in 1..8 && chessController.isBlackPawn(
+                    chessController.get(
                         selectedRowNumber - 1
                     )
                 ) && bitmap != null
             ) {
-                canvas.drawBitmap(bitmap, leftX, topY, paint)
+                canvas.drawBitmap(bitmap!!, leftX, topY, paint)
                 shouldReplace = true
             } else {
                 canvas.drawCircle(
@@ -191,14 +204,14 @@ class ChessView @JvmOverloads constructor(
         }
 
 
-        if (shouldReplace && bitmap != null && touchedX in leftX..leftX + bitmap.width && touchedY in topY..topY + bitmap.height) {
-            val symbols = if (isWhiteTurn) chess.getWhiteSymbols() else chess.getBlackPiece()
+        if (shouldReplace && bitmap != null && touchedX in leftX..leftX + bitmap!!.width && touchedY in topY..topY + bitmap!!.height) {
+            val symbols = chessController.getPromotedSymbols(isWhiteTurn)
             var position = 0
 
             MaterialAlertDialogBuilder(context).setTitle("Promote Your Pawn")
                 .setPositiveButton("Okay") { _, _ ->
-                    val symbol = symbols[position] ?: return@setPositiveButton
-                    chess.set(selectedRowNumber - 1, symbol)
+                    val symbol = symbols[position]
+                    chessController.set(selectedRowNumber - 1, symbol)
                     message("The Pawn Promoted to $symbol")
                     touchedX = 0f
                     touchedY = 0f
@@ -216,15 +229,38 @@ class ChessView @JvmOverloads constructor(
 
     }
 
-    private fun drawText(
-        canvas: Canvas, color: Int, textSize: Float, text: String, x: Float, y: Float
+    private fun drawSymbol(
+        canvas: Canvas, textSize: Float, piece: Piece, x: Float, y: Float
     ) {
-        chessPiecePaint.textSize = textSize
-        chessPiecePaint.setShadowLayer(
-            15f, 0f, 0f, if (color == chess.whiteColor) chess.blackColor else chess.whiteColor
-        ) // Shadow properties
-        chessPiecePaint.color = color
-        canvas.drawText(text, x, y, chessPiecePaint)
+
+        symbolPaint.textSize = textSize
+        val symbol = piece.symbol
+
+        val transformedSymbol = chessController.transform(symbol)
+        val isLightPiece = chessController.isLightPiece(piece)
+
+        if (isLightPiece) {
+            if (!chessController.isLightFilled) {
+                symbolPaint.color = chessController.pieceDarkColor
+                canvas.drawText(transformedSymbol, x, y, symbolPaint)
+            }
+        } else if (!chessController.isDarkFilled) {
+            symbolPaint.color = chessController.pieceLightColor
+            canvas.drawText(transformedSymbol, x, y, symbolPaint)
+        }
+
+        symbolPaint.color = piece.color
+        canvas.drawText(symbol, x, y, symbolPaint)
+
+        if (isLightPiece) {
+            if (chessController.isLightFilled) {
+                symbolPaint.color = chessController.pieceDarkColor
+                canvas.drawText(transformedSymbol, x, y, symbolPaint)
+            }
+        } else if (chessController.isDarkFilled) {
+            symbolPaint.color = chessController.pieceLightColor
+            canvas.drawText(transformedSymbol, x, y, symbolPaint)
+        }
     }
 
     private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
@@ -234,6 +270,37 @@ class ChessView @JvmOverloads constructor(
     private fun message(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
+
+    fun setSquareColors(light: Int = lightSquareColor, dark: Int = darkSquareColor) {
+        lightSquareColor = light
+        darkSquareColor = dark
+    }
+
+    fun setPieceStyle(
+        isLightFilled: Boolean,
+        isDarkFilled: Boolean,
+        lightColor: Int,
+        darkColor: Int,
+    ) {
+        chessController =
+            ChessController(context, isLightFilled, isDarkFilled, lightColor, darkColor)
+    }
+
+    fun setSymbolStyle(style: SymbolStyle) {
+        fun setFont(id: Int): Typeface? {
+            return ResourcesCompat.getFont(context, id)
+        }
+
+        val typeface = when (style) {
+            SymbolStyle.CLASSIC -> setFont(R.font.chess_alpha)
+            SymbolStyle.MERIDA -> setFont(R.font.chess_merida_unicode)
+            SymbolStyle.SYMBOLA -> setFont(R.font.symbola)
+            SymbolStyle.STANDARD -> null
+        }
+
+        symbolPaint.typeface = typeface
+    }
+
 
     override fun performClick(): Boolean {
         playSoundEffect(SoundEffectConstants.CLICK)

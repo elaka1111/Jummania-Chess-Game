@@ -8,14 +8,6 @@ package com.jummania
  */
 data class Piece(var symbol: String, val color: Int) {
 
-    fun isEmpty(): Boolean {
-        return symbol.isEmpty()
-    }
-
-    fun isNotEmpty(): Boolean {
-        return !isEmpty()
-    }
-
     fun isKing(): Boolean {
         return symbol == "♔" || symbol == "♚"
     }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="ChessView">
+        <attr name="isLightFilled" format="boolean" />
+        <attr name="isDarkFilled" format="boolean" />
+
+        <attr name="lightSquareColor" format="color" />
+        <attr name="darkSquareColor" format="color" />
+        <attr name="pieceLightColor" format="color" />
+        <attr name="pieceDarkColor" format="color" />
+
+        <attr name="symbolStyle">
+            <flag name="standard" value="0" />         <!-- system/default font -->
+            <flag name="classic" value="1" />         <!-- chess_alpha.ttf -->
+            <flag name="merida" value="2" />          <!-- chess_merida_unicode.ttf -->
+            <flag name="symbola" value="3" />         <!-- symbola.ttf -->
+        </attr>
+
+    </declare-styleable>
+
+</resources>
