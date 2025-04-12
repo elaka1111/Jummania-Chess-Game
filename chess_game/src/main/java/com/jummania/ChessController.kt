@@ -216,7 +216,7 @@ internal class ChessController(
                         MaterialAlertDialogBuilder(context).setTitle("Game Over")
                             .setPositiveButton("Restart") { _, _ ->
                                 (context as Activity).recreate()
-                            }.show()
+                            }.setCancelable(false).show()
                     } else {
                         message(
                             String.format(
