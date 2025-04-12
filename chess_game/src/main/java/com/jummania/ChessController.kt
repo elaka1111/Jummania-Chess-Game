@@ -1,8 +1,10 @@
 package com.jummania
 
+import android.app.Activity
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jummania.ChessView.Companion.isWhiteTurn
 
 
@@ -210,11 +212,18 @@ internal class ChessController(
                 set(fromIndex, toIndex, fromPiece)
 
                 if (toPiece != null) {
-                    message(
-                        String.format(
-                            "%s attacks and captures %s!", fromPiece.symbol, toPiece.symbol
+                    if (toPiece.isKing()) {
+                        MaterialAlertDialogBuilder(context).setTitle("Game Over")
+                            .setPositiveButton("Restart") { _, _ ->
+                                (context as Activity).recreate()
+                            }.show()
+                    } else {
+                        message(
+                            String.format(
+                                "%s attacks and captures %s", fromPiece.symbol, toPiece.symbol
+                            )
                         )
-                    )
+                    }
                 }
 
             }

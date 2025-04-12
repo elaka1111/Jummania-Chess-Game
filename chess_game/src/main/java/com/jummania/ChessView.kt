@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import android.view.SoundEffectConstants
 import android.view.View
 import android.widget.Toast
+import androidx.annotation.Keep
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -23,6 +24,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
  * Email: sharifuddinjumman@gmail.com
  * Dhaka, Bangladesh.
  */
+
+@Keep
 class ChessView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
@@ -70,8 +73,7 @@ class ChessView @JvmOverloads constructor(
             setSymbolStyle(
                 SymbolStyle.fromInt(
                     typedArray.getInt(
-                        R.styleable.ChessView_symbolStyle,
-                        1
+                        R.styleable.ChessView_symbolStyle, 1
                     )
                 )
             )
