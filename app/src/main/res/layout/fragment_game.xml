@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.jummania.ChessView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:chess="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/chessView"
+
+    chess:lightSquareColor="#fadeaf"
+    chess:darkSquareColor="#8e4f19"
+
+    chess:isDarkFilled="true"
+    chess:isLightFilled="true"
+    chess:enableStroke="true"
+
+    chess:pieceDarkColor="#000"
+    chess:pieceLightColor="#fff"
+    chess:strokeLightColor="#fff"
+    chess:strokeDarkColor="#000"
+
+    chess:symbolStyle="symbola" />

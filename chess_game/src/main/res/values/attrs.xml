@@ -4,11 +4,16 @@
     <declare-styleable name="ChessView">
         <attr name="isLightFilled" format="boolean" />
         <attr name="isDarkFilled" format="boolean" />
+        <attr name="enableStroke" format="boolean" />
+        <attr name="useBoldSymbol" format="boolean" />
+        <attr name="enableSoundEffect" format="boolean" />
 
         <attr name="lightSquareColor" format="color" />
         <attr name="darkSquareColor" format="color" />
         <attr name="pieceLightColor" format="color" />
         <attr name="pieceDarkColor" format="color" />
+        <attr name="strokeLightColor" format="color" />
+        <attr name="strokeDarkColor" format="color" />
 
         <attr name="symbolStyle">
             <flag name="standard" value="0" />         <!-- system/default font -->

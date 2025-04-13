@@ -14,6 +14,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        resValue("string", "versionName", versionName.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -45,9 +46,10 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(project(":chess_game"))
+    implementation(libs.android.colorpickerpreference)
+    implementation(libs.androidx.preference)
 }

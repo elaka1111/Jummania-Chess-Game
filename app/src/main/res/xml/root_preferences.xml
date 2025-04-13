@@ -1,0 +1,120 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory android:title="🔊 Sound Settings">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="playMusic"
+            android:summary="Play music during gameplay or while using the app"
+            android:title="Background Music" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="clickSound"
+            android:summary="Play a sound when tapping or interacting with elements"
+            android:title="Click Sound" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="🎨 Board Appearance">
+
+        <net.margaritov.preference.colorpicker.ColorPickerPreference
+            android:defaultValue="#ffffff"
+            android:key="backgroundColor"
+            android:summary="Set the board background color of the app"
+            android:title="board Background Color" />
+
+        <net.margaritov.preference.colorpicker.ColorPickerPreference
+            android:defaultValue="#fadeaf"
+            android:key="lightSquareColor"
+            android:title="Light Square Color" />
+
+        <net.margaritov.preference.colorpicker.ColorPickerPreference
+            android:defaultValue="#8e4f19"
+            android:key="darkSquareColor"
+            android:title="Dark Square Color" />
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="isLightFilled"
+            android:title="Fill Light Pieces" />
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="isDarkFilled"
+            android:title="Fill Dark Pieces" />
+
+    </PreferenceCategory>
+
+    <!-- Boolean Preferences -->
+
+    <PreferenceCategory android:title="♟ Piece Appearance">
+
+        <net.margaritov.preference.colorpicker.ColorPickerPreference
+            android:defaultValue="#ffffff"
+            android:key="pieceLightColor"
+            android:title="Light Piece Color" />
+
+        <net.margaritov.preference.colorpicker.ColorPickerPreference
+            android:defaultValue="#000000"
+            android:key="pieceDarkColor"
+            android:title="Dark Piece Color" />
+
+
+        <net.margaritov.preference.colorpicker.ColorPickerPreference
+            android:defaultValue="#ffffff"
+            android:key="strokeLightColor"
+            android:title="Stroke Color for Light Pieces" />
+
+        <net.margaritov.preference.colorpicker.ColorPickerPreference
+            android:defaultValue="#000000"
+            android:key="strokeDarkColor"
+            android:title="Stroke Color for Dark Pieces" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="enableStroke"
+            android:title="Enable Stroke Around Pieces" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="isBoldSymbol"
+            android:title="Use Bold Symbol" />
+
+        <ListPreference
+            android:defaultValue="3"
+            android:entries="@array/symbol_style_names"
+            android:entryValues="@array/symbol_style_values"
+            android:key="symbolStyle"
+            android:title="Symbol Style" />
+
+    </PreferenceCategory>
+
+
+    <PreferenceCategory android:title="Reset">
+
+        <Preference
+            android:key="clear"
+            android:summary="Restore all settings to their original defaults"
+            android:title="Reset to Default"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="About">
+
+        <Preference
+            app:key="website"
+            app:title="About Developer"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:enabled="false"
+            app:key="version"
+            app:title="@string/versionName"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

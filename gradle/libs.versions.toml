@@ -1,14 +1,18 @@
 [versions]
 agp = "8.9.1"
+androidColorpickerpreference = "v1.2.1"
 kotlin = "2.0.21"
 coreKtx = "1.16.0"
 appcompat = "1.7.0"
 material = "1.12.0"
+preference = "1.2.1"
 
 [libraries]
+android-colorpickerpreference = { module = "com.github.attenzione:android-ColorPickerPreference", version.ref = "androidColorpickerpreference" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
