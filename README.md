@@ -1,5 +1,5 @@
 <p align="center">
-   <img src="https://github.com/user-attachments/assets/5b79e03f-9f22-4dec-b4eb-14eb68d840f5" alt="App Icon" width="666">
+   <img src="https://github.com/user-attachments/assets/b17218f0-d731-4c77-afb0-90ae43cec929" alt="App Icon" width="666">
    <br>
    <img src="https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat" alt="API Level 17 and above"/>
    <a href="https://jitpack.io/#Jumman04/Jummania-Chess-Game">
