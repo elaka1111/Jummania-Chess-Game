@@ -83,9 +83,12 @@ internal class ChessController(
         return piece.isPawn() && piece.color == pieceDarkColor
     }
 
+    private fun isFriend(piece: Piece?, isWhitePiece: Boolean): Boolean {
+        return piece != null && isLightPiece(piece) == isWhitePiece
+    }
+
     private fun isEnemy(piece: Piece?, isWhitePiece: Boolean): Boolean {
-        if (piece == null) return false
-        return (isWhitePiece && isDarkPiece(piece)) || (!isWhitePiece && !isDarkPiece(piece))
+        return piece != null && !isFriend(piece, isWhitePiece)
     }
 
     fun getPromotedSymbols(isWhiteTurn: Boolean): Array<String> {
@@ -107,9 +110,16 @@ internal class ChessController(
             return
         }
 
-        val isCheck = isCheck(isWhiteTurn)
-
         val toPiece = get(toIndex)
+
+        // Check if the destination square contains a piece of the same color
+        if (isFriend(toPiece, isFromWhitePiece)) {
+            message("${if (isFromWhitePiece) "White" else "Black"} cannot move to its own piece.")
+            return
+        }
+
+        val isCheck = isCheck(isFromWhitePiece)
+
 
         // Function to get valid move sequence for the piece
         fun getMoveSequence(
@@ -175,17 +185,6 @@ internal class ChessController(
             }
         }
 
-        // Check if the destination square contains a piece of the same color
-
-        val isToWhitePiece = isLightPiece(toPiece)
-        val isFromBlackPiece = isDarkPiece(fromPiece)
-        val isToBlackPiece = isDarkPiece(toPiece)
-
-        if ((isFromWhitePiece && isToWhitePiece) || (isFromBlackPiece && isToBlackPiece)) {
-            message("${if (isFromWhitePiece) "White" else "Black"} cannot move to its own piece.")
-            return
-        }
-
         // Move the piece
         set(fromIndex, toIndex, fromPiece)
 
@@ -204,14 +203,21 @@ internal class ChessController(
         isWhiteTurn = !isFromWhitePiece
     }
 
-    private fun isCheck(whiteTurn: Boolean): Boolean {
-
-        /*
+    private fun isCheck(isWhitePiece: Boolean): Boolean {
         val kingPosition =
-            chessBoard.indexOfFirst { it?.isKing() == true && it.color == if (whiteTurn) pieceLightColor else pieceDarkColor }
+            chessBoard.indexOfFirst { it?.isKing() == true && it.color == if (isWhitePiece) pieceLightColor else pieceDarkColor }
         if (kingPosition == -1) return false
 
-         */
+        val friendsList = mutableListOf<Int>()
+
+        if (isFriend(get(kingPosition - 1), isWhitePiece)) friendsList.add(kingPosition - 1)
+        if (isFriend(get(kingPosition + 1), isWhitePiece)) friendsList.add(kingPosition + 1)
+        if (isFriend(get(kingPosition - 7), isWhitePiece)) friendsList.add(kingPosition - 7)
+        if (isFriend(get(kingPosition + 7), isWhitePiece)) friendsList.add(kingPosition + 7)
+        if (isFriend(get(kingPosition - 8), isWhitePiece)) friendsList.add(kingPosition - 8)
+        if (isFriend(get(kingPosition + 8), isWhitePiece)) friendsList.add(kingPosition + 8)
+        if (isFriend(get(kingPosition - 9), isWhitePiece)) friendsList.add(kingPosition - 9)
+        if (isFriend(get(kingPosition + 9), isWhitePiece)) friendsList.add(kingPosition + 9)
 
         return false
     }
