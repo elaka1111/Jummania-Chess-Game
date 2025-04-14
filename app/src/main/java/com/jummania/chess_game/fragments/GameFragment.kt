@@ -3,6 +3,7 @@ package com.jummania.chess_game.fragments
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowInsetsCompat
@@ -65,13 +66,16 @@ class GameFragment : Fragment(R.layout.fragment_game) {
             )
         }
 
+        val mWindow = mActivity.window
         WindowInsetsControllerCompat(
-            mActivity.window, mActivity.findViewById(android.R.id.content)
+            mWindow, mActivity.findViewById(android.R.id.content)
         ).let {
             it.hide(WindowInsetsCompat.Type.systemBars())
             it.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+
+        mWindow.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
 

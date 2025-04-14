@@ -2,6 +2,7 @@ package com.jummania
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jummania.ChessView.Companion.isWhiteTurn
@@ -37,6 +38,13 @@ internal class ChessController(
     }
 
     private val chessBoard = arrayOfNulls<Piece>(64)
+
+    val boardEdges = intArrayOf(
+        0, 1, 2, 3, 4, 5, 6, 7,         // Top edge
+        8, 16, 24, 32, 40, 48,          // Left edge (excluding corners)
+        15, 23, 31, 39, 47, 55,         // Right edge (excluding corners)
+        56, 57, 58, 59, 60, 61, 62, 63  // Bottom edge
+    )
 
     init {
         for (i in lightPieces.indices) chessBoard[i] = lightPieces[i]
@@ -74,13 +82,11 @@ internal class ChessController(
     }
 
     fun isWhitePawn(piece: Piece?): Boolean {
-        if (piece == null) return false
-        return piece.isPawn() && piece.color == pieceLightColor
+        return piece != null && piece.isPawn() && piece.color == pieceLightColor
     }
 
     fun isBlackPawn(piece: Piece?): Boolean {
-        if (piece == null) return false
-        return piece.isPawn() && piece.color == pieceDarkColor
+        return piece != null && !isWhitePawn(piece)
     }
 
     private fun isFriend(piece: Piece?, isWhitePiece: Boolean): Boolean {
@@ -117,9 +123,6 @@ internal class ChessController(
             message("${if (isFromWhitePiece) "White" else "Black"} cannot move to its own piece.")
             return
         }
-
-        val isCheck = isCheck(isFromWhitePiece)
-
 
         // Function to get valid move sequence for the piece
         fun getMoveSequence(
@@ -185,6 +188,19 @@ internal class ChessController(
             }
         }
 
+        if (isCheck(isFromWhitePiece)) {
+            // Move the piece
+            set(fromIndex, toIndex, fromPiece)
+
+            if (isCheck(isFromWhitePiece)) {
+                chessBoard[toIndex] = toPiece
+                chessBoard[fromIndex] = fromPiece
+                message("You cannot move because your 'King' is in check.")
+                return
+            }
+            return
+        }
+
         // Move the piece
         set(fromIndex, toIndex, fromPiece)
 
@@ -208,18 +224,120 @@ internal class ChessController(
             chessBoard.indexOfFirst { it?.isKing() == true && it.color == if (isWhitePiece) pieceLightColor else pieceDarkColor }
         if (kingPosition == -1) return false
 
-        val friendsList = mutableListOf<Int>()
+        fun isNotFriend(position: Int): Boolean {
+            if (position !in indices()) return false
+            val piece = get(position)
+            return piece == null || isEnemy(piece, isWhitePiece)
+        }
 
-        if (isFriend(get(kingPosition - 1), isWhitePiece)) friendsList.add(kingPosition - 1)
-        if (isFriend(get(kingPosition + 1), isWhitePiece)) friendsList.add(kingPosition + 1)
-        if (isFriend(get(kingPosition - 7), isWhitePiece)) friendsList.add(kingPosition - 7)
-        if (isFriend(get(kingPosition + 7), isWhitePiece)) friendsList.add(kingPosition + 7)
-        if (isFriend(get(kingPosition - 8), isWhitePiece)) friendsList.add(kingPosition - 8)
-        if (isFriend(get(kingPosition + 8), isWhitePiece)) friendsList.add(kingPosition + 8)
-        if (isFriend(get(kingPosition - 9), isWhitePiece)) friendsList.add(kingPosition - 9)
-        if (isFriend(get(kingPosition + 9), isWhitePiece)) friendsList.add(kingPosition + 9)
+        fun isKnight(position: Int): Boolean {
+            if (position !in indices()) return false
+            val piece = get(position)
+            return piece != null && piece.isKnight() && isEnemy(piece, isWhitePiece)
+        }
 
-        return false
+        var hasEnemy = false
+
+        if (isNotFriend(kingPosition - 1)) {
+            Log.d("Jjj", "isCheck: -1")
+            hasEnemy = true
+        }
+        if (isNotFriend(kingPosition + 1)) {
+            Log.d("Jjj", "isCheck: +1")
+            hasEnemy = true
+        }
+
+        if (isNotFriend(kingPosition - 7)) {
+            for (i in 1 until 9) {
+                val position = kingPosition - 7 * i
+
+                val piece = get(position)
+
+                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
+                        piece, isWhitePiece
+                    )
+                ) {
+                    hasEnemy = true
+                    Log.d("Jjj", "isCheck: -7")
+                    break
+                }
+
+                if (position % 8 == 7) break
+            }
+        }
+        if (isNotFriend(kingPosition + 7)) {
+            for (i in 1 until 9) {
+                val position = kingPosition + 7 * i
+
+                val piece = get(position)
+
+                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
+                        piece, isWhitePiece
+                    )
+                ) {
+                    hasEnemy = true
+                    Log.d("Jjj", "isCheck: +7")
+                    break
+                }
+
+                if (position % 8 == 0) break
+            }
+        }
+        if (isNotFriend(kingPosition - 8)) {
+            Log.d("Jjj", "isCheck: -8")
+            hasEnemy = true
+        }
+        if (isNotFriend(kingPosition + 8)) {
+            Log.d("Jjj", "isCheck: +8")
+            hasEnemy = true
+        }
+        if (isNotFriend(kingPosition - 9)) {
+            for (i in 1 until 9) {
+                val position = kingPosition - 9 * i
+
+                val piece = get(position)
+
+                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
+                        piece, isWhitePiece
+                    )
+                ) {
+                    hasEnemy = true
+                    Log.d("Jjj", "isCheck: -9")
+                    break
+                }
+
+                if (position % 8 == 0) break
+            }
+        }
+        if (isNotFriend(kingPosition + 9)) {
+            for (i in 1 until 9) {
+                val position = kingPosition + 9 * i
+
+                val piece = get(position)
+
+                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
+                        piece, isWhitePiece
+                    )
+                ) {
+                    hasEnemy = true
+                    Log.d("Jjj", "isCheck: +9")
+                    break
+                }
+
+                if (position % 8 == 7) break
+            }
+        }
+
+        if (isKnight(kingPosition - 6)) hasEnemy = true
+        if (isKnight(kingPosition + 6)) hasEnemy = true
+        if (isKnight(kingPosition - 10)) hasEnemy = true
+        if (isKnight(kingPosition + 10)) hasEnemy = true
+        if (isKnight(kingPosition - 15)) hasEnemy = true
+        if (isKnight(kingPosition + 15)) hasEnemy = true
+        if (isKnight(kingPosition - 17)) hasEnemy = true
+        if (isKnight(kingPosition + 17)) hasEnemy = true
+
+        return hasEnemy
     }
 
 
@@ -254,40 +372,42 @@ internal class ChessController(
         }
 
         for (i in 1 until sequence) {
-            // Check left
             if (left) {
-                val pos = position - 1 * i
-                left = if (pos >= leftLimit) {
-                    add(pos)
-                } else {
-                    false
-                }
+                val pos = position - i
+                left = if (pos >= leftLimit) add(pos) else false
             }
 
-            // Check right
             if (right) {
-                val pos = position + 1 * i
-                right = if (pos < rightLimit) add(pos)
-                else false
+                val pos = position + i
+                right = if (pos < rightLimit) add(pos) else false
             }
 
-            // Check up
             if (up) up = add(position + 8 * i)
-
-            // Check down
             if (down) down = add(position - 8 * i)
 
-            // Check up-left diagonal
-            if (upLeft) upLeft = add(position + 7 * i)
+            if (upLeft) {
+                val pos = position + 7 * i
+                upLeft = add(pos)
+                if (pos % 8 == 0) upLeft = false
+            }
 
-            // Check up-right diagonal
-            if (upRight) upRight = add(position + 9 * i)
+            if (upRight) {
+                val pos = position + 9 * i
+                upRight = add(pos)
+                if (pos % 8 == 7) upRight = false
+            }
 
-            // Check down-left diagonal
-            if (downLeft) downLeft = add(position - 9 * i)
+            if (downLeft) {
+                val pos = position - 9 * i
+                downLeft = add(pos)
+                if (pos % 8 == 0) downLeft = false
+            }
 
-            // Check down-right diagonal
-            if (downRight) downRight = add(position - 7 * i)
+            if (downRight) {
+                val pos = position - 7 * i
+                downRight = add(pos)
+                if (pos % 8 == 7) downRight = false
+            }
         }
 
         return list
@@ -300,10 +420,8 @@ internal class ChessController(
         return if (piece == null) {
             list.add(pos) // If the position is empty, add it to the list
         } else if (isEnemy(piece, isWhitePiece)) {
-            list.add(pos) // If it's an enemy piece, add it to the list (for capture)
-        } else {
-            false // If it's a friendly piece, return false (cannot move here)
-        }
+            !list.add(pos) // If it's an enemy piece, add it to the list (for capture)
+        } else false // If it's a friendly piece, return false (cannot move here)
     }
 
 
