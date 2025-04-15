@@ -39,12 +39,7 @@ internal class ChessController(
 
     private val chessBoard = arrayOfNulls<Piece>(64)
 
-    val boardEdges = intArrayOf(
-        0, 1, 2, 3, 4, 5, 6, 7,         // Top edge
-        8, 16, 24, 32, 40, 48,          // Left edge (excluding corners)
-        15, 23, 31, 39, 47, 55,         // Right edge (excluding corners)
-        56, 57, 58, 59, 60, 61, 62, 63  // Bottom edge
-    )
+    private val indices = chessBoard.indices
 
     init {
         for (i in lightPieces.indices) chessBoard[i] = lightPieces[i]
@@ -56,45 +51,42 @@ internal class ChessController(
     }
 
     fun get(position: Int): Piece? {
-        if (position in indices()) return chessBoard[position]
+        if (position in indices) return chessBoard[position]
         return null
     }
 
-    fun set(fromIndex: Int, toIndex: Int, piece: Piece?) {
+    private fun movePiece(fromIndex: Int, toIndex: Int, piece: Piece?) {
         chessBoard[toIndex] = piece
         chessBoard[fromIndex] = null
     }
 
-    fun set(position: Int, symbol: String) {
-        get(position)?.symbol = symbol
-    }
-
-    private fun indices(): IntRange {
-        return chessBoard.indices
+    fun promotePawn(position: Int, symbol: String) {
+        val piece = get(position)
+        if (piece != null) {
+            piece.symbol = symbol
+            chessBoard[position] = piece
+        }
     }
 
     fun isLightPiece(piece: Piece?): Boolean {
         return piece?.color == pieceLightColor
     }
 
-    private fun isDarkPiece(piece: Piece?): Boolean {
-        return piece?.color == pieceDarkColor
-    }
-
-    fun isWhitePawn(piece: Piece?): Boolean {
+    fun isLightPawn(piece: Piece?): Boolean {
         return piece != null && piece.isPawn() && piece.color == pieceLightColor
     }
 
     fun isBlackPawn(piece: Piece?): Boolean {
-        return piece != null && !isWhitePawn(piece)
+        return piece != null && piece.isPawn() && piece.color == pieceDarkColor
     }
 
     private fun isFriend(piece: Piece?, isWhitePiece: Boolean): Boolean {
         return piece != null && isLightPiece(piece) == isWhitePiece
     }
 
-    private fun isEnemy(piece: Piece?, isWhitePiece: Boolean): Boolean {
-        return piece != null && !isFriend(piece, isWhitePiece)
+    private fun isValidMove(pos: Int, isWhitePiece: Boolean): Boolean {
+        val piece = get(pos)
+        return piece == null || !isFriend(piece, isWhitePiece)
     }
 
     fun getPromotedSymbols(isWhiteTurn: Boolean): Array<String> {
@@ -104,7 +96,7 @@ internal class ChessController(
     }
 
     fun swapTo(fromIndex: Int, toIndex: Int) {
-        if (fromIndex !in indices() || toIndex !in indices()) return
+        if (fromIndex !in indices || toIndex !in indices) return
 
         val fromPiece = get(fromIndex) ?: return
 
@@ -125,63 +117,53 @@ internal class ChessController(
         }
 
         // Function to get valid move sequence for the piece
-        fun getMoveSequence(
+        fun isMoveAllowed(
             sequence: Int, horizontal: Boolean, vertical: Boolean, diagonal: Boolean
-        ): List<Int> {
-            return getSequence(
-                fromIndex, sequence, isFromWhitePiece, horizontal, vertical, diagonal
+        ): Boolean {
+            return isMoveAllowed(
+                fromIndex, toIndex, isFromWhitePiece, sequence, horizontal, vertical, diagonal
             )
         }
 
         // Piece-specific movement rules
         when {
             fromPiece.isKing() -> {
-                val sequence =
-                    getMoveSequence(2, horizontal = true, vertical = true, diagonal = false)
-                if (toIndex !in sequence) {
+                if (!isMoveAllowed(2, horizontal = true, vertical = true, diagonal = false)) {
                     message("The King can only move one square in any direction.")
                     return
                 }
             }
 
             fromPiece.isRook() -> {
-                val sequence =
-                    getMoveSequence(8, horizontal = true, vertical = true, diagonal = false)
-                if (toIndex !in sequence) {
+                if (!isMoveAllowed(8, horizontal = true, vertical = true, diagonal = false)) {
                     message("The Rook can only move horizontally or vertically.")
                     return
                 }
             }
 
             fromPiece.isBishop() -> {
-                val sequence =
-                    getMoveSequence(8, horizontal = false, vertical = false, diagonal = true)
-                if (toIndex !in sequence) {
+                if (!isMoveAllowed(8, horizontal = false, vertical = false, diagonal = true)) {
                     message("The Bishop can only move diagonally.")
                     return
                 }
             }
 
             fromPiece.isQueen() -> {
-                val sequence =
-                    getMoveSequence(8, horizontal = true, vertical = true, diagonal = true)
-                if (toIndex !in sequence) {
+                if (!isMoveAllowed(8, horizontal = true, vertical = true, diagonal = true)) {
                     message("The Queen can move horizontally, vertically, or diagonally.")
                     return
                 }
             }
 
             fromPiece.isKnight() -> {
-                val sequence = getKnightSequence(fromIndex, isFromWhitePiece)
-                if (toIndex !in sequence) {
+                if (!isKnightMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
                     message("The Knight can only move in an L shape.")
                     return
                 }
             }
 
             fromPiece.isPawn() -> {
-                val sequence = getPawnSequence(fromIndex, isFromWhitePiece)
-                if (toIndex !in sequence) {
+                if (!isPawnMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
                     message("The Pawn can only move one square forward.")
                     return
                 }
@@ -190,7 +172,7 @@ internal class ChessController(
 
         if (isCheck(isFromWhitePiece)) {
             // Move the piece
-            set(fromIndex, toIndex, fromPiece)
+            movePiece(fromIndex, toIndex, fromPiece)
 
             if (isCheck(isFromWhitePiece)) {
                 chessBoard[toIndex] = toPiece
@@ -198,11 +180,10 @@ internal class ChessController(
                 message("You cannot move because your 'King' is in check.")
                 return
             }
-            return
         }
 
         // Move the piece
-        set(fromIndex, toIndex, fromPiece)
+        movePiece(fromIndex, toIndex, fromPiece)
 
         // Handle capture or king checkmate
         if (toPiece != null) {
@@ -224,119 +205,82 @@ internal class ChessController(
             chessBoard.indexOfFirst { it?.isKing() == true && it.color == if (isWhitePiece) pieceLightColor else pieceDarkColor }
         if (kingPosition == -1) return false
 
-        fun isNotFriend(position: Int): Boolean {
-            if (position !in indices()) return false
-            val piece = get(position)
-            return piece == null || isEnemy(piece, isWhitePiece)
-        }
-
-        fun isKnight(position: Int): Boolean {
-            if (position !in indices()) return false
-            val piece = get(position)
-            return piece != null && piece.isKnight() && isEnemy(piece, isWhitePiece)
+        // Function to get valid move sequence for the piece
+        fun isMoveAllowed(
+            position: Int, sequence: Int, horizontal: Boolean, vertical: Boolean, diagonal: Boolean
+        ): Boolean {
+            return isMoveAllowed(
+                position, kingPosition, !isWhitePiece, sequence, horizontal, vertical, diagonal
+            )
         }
 
         var hasEnemy = false
 
-        if (isNotFriend(kingPosition - 1)) {
-            Log.d("Jjj", "isCheck: -1")
-            hasEnemy = true
-        }
-        if (isNotFriend(kingPosition + 1)) {
-            Log.d("Jjj", "isCheck: +1")
-            hasEnemy = true
-        }
-
-        if (isNotFriend(kingPosition - 7)) {
-            for (i in 1 until 9) {
-                val position = kingPosition - 7 * i
-
-                val piece = get(position)
-
-                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
-                        piece, isWhitePiece
-                    )
-                ) {
-                    hasEnemy = true
-                    Log.d("Jjj", "isCheck: -7")
-                    break
+        for (position in chessBoard.indices) {
+            val piece = chessBoard[position]
+            if (piece == null || isFriend(piece, isWhitePiece)) continue
+            when {
+                piece.isKing() -> {
+                    if (isMoveAllowed(
+                            position, 2, horizontal = true, vertical = true, diagonal = false
+                        )
+                    ) {
+                        Log.d("Jjj", "isCheck: isKing")
+                        hasEnemy = true
+                        break
+                    }
                 }
 
-                if (position % 8 == 7) break
-            }
-        }
-        if (isNotFriend(kingPosition + 7)) {
-            for (i in 1 until 9) {
-                val position = kingPosition + 7 * i
-
-                val piece = get(position)
-
-                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
-                        piece, isWhitePiece
-                    )
-                ) {
-                    hasEnemy = true
-                    Log.d("Jjj", "isCheck: +7")
-                    break
+                piece.isRook() -> {
+                    if (isMoveAllowed(
+                            position, 8, horizontal = true, vertical = true, diagonal = false
+                        )
+                    ) {
+                        Log.d("Jjj", "isCheck: isRook")
+                        hasEnemy = true
+                        break
+                    }
                 }
 
-                if (position % 8 == 0) break
-            }
-        }
-        if (isNotFriend(kingPosition - 8)) {
-            Log.d("Jjj", "isCheck: -8")
-            hasEnemy = true
-        }
-        if (isNotFriend(kingPosition + 8)) {
-            Log.d("Jjj", "isCheck: +8")
-            hasEnemy = true
-        }
-        if (isNotFriend(kingPosition - 9)) {
-            for (i in 1 until 9) {
-                val position = kingPosition - 9 * i
-
-                val piece = get(position)
-
-                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
-                        piece, isWhitePiece
-                    )
-                ) {
-                    hasEnemy = true
-                    Log.d("Jjj", "isCheck: -9")
-                    break
+                piece.isBishop() -> {
+                    if (isMoveAllowed(
+                            position, 8, horizontal = false, vertical = false, diagonal = true
+                        )
+                    ) {
+                        Log.d("Jjj", "isCheck: isBishop")
+                        hasEnemy = true
+                        break
+                    }
                 }
 
-                if (position % 8 == 0) break
-            }
-        }
-        if (isNotFriend(kingPosition + 9)) {
-            for (i in 1 until 9) {
-                val position = kingPosition + 9 * i
-
-                val piece = get(position)
-
-                if (piece != null && (piece.isBishop() || piece.isQueen()) && isEnemy(
-                        piece, isWhitePiece
-                    )
-                ) {
-                    hasEnemy = true
-                    Log.d("Jjj", "isCheck: +9")
-                    break
+                piece.isQueen() -> {
+                    if (isMoveAllowed(
+                            position, 8, horizontal = true, vertical = true, diagonal = true
+                        )
+                    ) {
+                        Log.d("Jjj", "isCheck: isQueen")
+                        hasEnemy = true
+                        break
+                    }
                 }
 
-                if (position % 8 == 7) break
+                piece.isKnight() -> {
+                    if (isKnightMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                        Log.d("Jjj", "isCheck: isKnight")
+                        hasEnemy = true
+                        break
+                    }
+                }
+
+                piece.isPawn() -> {
+                    if (isPawnMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                        Log.d("Jjj", "isCheck: isPawn")
+                        hasEnemy = true
+                        break
+                    }
+                }
             }
         }
-
-        if (isKnight(kingPosition - 6)) hasEnemy = true
-        if (isKnight(kingPosition + 6)) hasEnemy = true
-        if (isKnight(kingPosition - 10)) hasEnemy = true
-        if (isKnight(kingPosition + 10)) hasEnemy = true
-        if (isKnight(kingPosition - 15)) hasEnemy = true
-        if (isKnight(kingPosition + 15)) hasEnemy = true
-        if (isKnight(kingPosition - 17)) hasEnemy = true
-        if (isKnight(kingPosition + 17)) hasEnemy = true
-
         return hasEnemy
     }
 
@@ -345,15 +289,17 @@ internal class ChessController(
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 
-    private fun getSequence(
-        position: Int,
-        sequence: Int,
+    private fun isMoveAllowed(
+        from: Int,
+        to: Int,
         isWhitePiece: Boolean,
+        sequence: Int,
         horizontal: Boolean,
         vertical: Boolean,
         diagonal: Boolean
-    ): List<Int> {
-        val list = mutableListOf<Int>()
+    ): Boolean {
+
+        if (from == to) return false
 
         var left = horizontal
         var right = horizontal
@@ -364,123 +310,114 @@ internal class ChessController(
         var downLeft = diagonal
         var downRight = diagonal
 
-        val leftLimit = position - (position % 8)
+        val leftLimit = from - (from % 8)
         val rightLimit = leftLimit + 8
-
-        fun add(pos: Int): Boolean {
-            return add(list, pos, isWhitePiece)
-        }
 
         for (i in 1 until sequence) {
             if (left) {
-                val pos = position - i
-                left = if (pos >= leftLimit) add(pos) else false
+                val pos = from - i
+                if (pos >= leftLimit) {
+                    if (pos == to) return isValidMove(pos, isWhitePiece)
+                    left = get(pos) == null
+                } else left = false
             }
 
             if (right) {
-                val pos = position + i
-                right = if (pos < rightLimit) add(pos) else false
+                val pos = from + i
+                if (pos < rightLimit) {
+                    if (pos == to) return isValidMove(pos, isWhitePiece)
+                    right = get(pos) == null
+                } else right = false
             }
 
-            if (up) up = add(position + 8 * i)
-            if (down) down = add(position - 8 * i)
+            if (up) {
+                val pos = from + 8 * i
+                if (pos == to) return isValidMove(pos, isWhitePiece)
+                up = get(pos) == null
+            }
+
+            if (down) {
+                val pos = from - 8 * i
+                if (pos == to) return isValidMove(pos, isWhitePiece)
+                down = get(pos) == null
+            }
 
             if (upLeft) {
-                val pos = position + 7 * i
-                upLeft = add(pos)
+                val pos = from + 7 * i
+                if (pos == to) return isValidMove(pos, isWhitePiece)
+                upLeft = get(pos) == null
                 if (pos % 8 == 0) upLeft = false
             }
 
             if (upRight) {
-                val pos = position + 9 * i
-                upRight = add(pos)
+                val pos = from + 9 * i
+                if (pos == to) return isValidMove(pos, isWhitePiece)
+                upRight = get(pos) == null
                 if (pos % 8 == 7) upRight = false
             }
 
             if (downLeft) {
-                val pos = position - 9 * i
-                downLeft = add(pos)
+                val pos = from - 9 * i
+                if (pos == to) return isValidMove(pos, isWhitePiece)
+                downLeft = get(pos) == null
                 if (pos % 8 == 0) downLeft = false
             }
 
             if (downRight) {
-                val pos = position - 7 * i
-                downRight = add(pos)
+                val pos = from - 7 * i
+                if (pos == to) return isValidMove(pos, isWhitePiece)
+                downRight = get(pos) == null
                 if (pos % 8 == 7) downRight = false
             }
         }
 
-        return list
+        return false
     }
 
 
-    private fun add(list: MutableList<Int>, pos: Int, isWhitePiece: Boolean): Boolean {
-        if (pos !in indices()) return false // Check if the position is within valid board indices
-        val piece = get(pos) // Get the piece at the position
-        return if (piece == null) {
-            list.add(pos) // If the position is empty, add it to the list
-        } else if (isEnemy(piece, isWhitePiece)) {
-            !list.add(pos) // If it's an enemy piece, add it to the list (for capture)
-        } else false // If it's a friendly piece, return false (cannot move here)
+    private fun isKnightMoveAllowed(
+        from: Int, to: Int, isWhitePiece: Boolean
+    ): Boolean {
+
+        if (from == to) return false
+
+        val sequence = intArrayOf(
+            from + 6, from - 6, from + 10, from - 10, from + 15, from - 15, from + 17, from - 17
+        )
+
+        if (to in sequence) {
+            return isValidMove(to, isWhitePiece)
+        }
+
+        return false
     }
 
 
-    private fun getKnightSequence(position: Int, isWhitePiece: Boolean): List<Int> {
-        val list = mutableListOf<Int>()
+    private fun isPawnMoveAllowed(from: Int, to: Int, isWhitePiece: Boolean): Boolean {
+        if (from == to) return false
 
-        // Helper function to add valid positions
-        fun add(pos: Int) {
-            add(list, pos, isWhitePiece)  // Calls the existing add function to check validity
+        val forwardStep = if (isWhitePiece) 8 else -8
+        val doubleForwardStep = if (isWhitePiece) 16 else -16
+        val captureLeft = if (isWhitePiece) 7 else -7
+        val captureRight = if (isWhitePiece) 9 else -9
+
+        // Check the capture positions (diagonal moves)
+        if (to == from + captureLeft || to == from + captureRight) {
+            val piece = get(to)
+            return piece != null && !isFriend(piece, isWhitePiece)
         }
 
-        // All possible knight moves (8 positions)
-        add(position + 6)   // Right and down
-        add(position - 6)   // Left and down
-        add(position + 10)  // Right and up
-        add(position - 10)  // Left and up
-        add(position + 15)  // Right and up-right
-        add(position - 15)  // Left and down-left
-        add(position + 17)  // Right and up-left
-        add(position - 17)  // Left and down-right
-
-        return list
-    }
-
-
-    private fun getPawnSequence(position: Int, isWhitePiece: Boolean): List<Int> {
-        val list = mutableListOf<Int>()
-
-        // Helper function to add valid positions
-        fun add(pos: Int) {
-            add(list, pos, isWhitePiece)  // Calls the existing add function to check validity
+        // Check the single square forward move
+        if (to == from + forwardStep) {
+            return get(to) == null
         }
 
-        // Capture moves (diagonal movement)
-        var animePosition = if (isWhitePiece) position + 7 else position - 7
-        if (animePosition in indices() && isEnemy(get(animePosition), isWhitePiece)) {
-            add(animePosition)
+        // Check the double square forward move from the starting positions (2nd and 7th ranks)
+        if ((from in 8..16 || from in 48..56) && to == from + doubleForwardStep) {
+            return get(to) == null
         }
 
-        animePosition = if (isWhitePiece) position + 9 else position - 9
-        if (animePosition in indices() && isEnemy(get(animePosition), isWhitePiece)) {
-            add(animePosition)
-        }
-
-        // Single square forward move
-        animePosition = if (isWhitePiece) position + 8 else position - 8
-        if (animePosition in indices() && !isEnemy(get(animePosition), isWhitePiece)) {
-            add(animePosition)
-        }
-
-        // Double square forward move from starting positions (2nd and 7th ranks)
-        if (position in 8..16 || position in 48..56) {
-            animePosition = if (isWhitePiece) position + 16 else position - 16
-            if (animePosition in indices() && !isEnemy(get(animePosition), isWhitePiece)) {
-                add(animePosition)
-            }
-        }
-
-        return list
+        return false
     }
 
 

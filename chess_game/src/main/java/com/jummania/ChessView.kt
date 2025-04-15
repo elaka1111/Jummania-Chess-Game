@@ -166,8 +166,6 @@ class ChessView @JvmOverloads constructor(
         drawText(canvas, boardTop, squareSize, "Player 1")
         drawText(canvas, boardTop + minSize * 1.3f, squareSize, "Player 2")
         drawTurnIndicator(canvas, boardTop, minSize, squareSize)
-
-        checkPawnPromotion(boardTop, minSize, squareSize)
     }
 
     private fun handleTouch(rowNumber: Int): Boolean {
@@ -237,7 +235,7 @@ class ChessView @JvmOverloads constructor(
         paint.color = Color.RED
 
         val isPawnReady =
-            (isWhiteTurn && selectedRowNumber in 57..64 && chessController.isWhitePawn(
+            (isWhiteTurn && selectedRowNumber in 57..64 && chessController.isLightPawn(
                 chessController.get(selectedRowNumber - 1)
             )) || (!isWhiteTurn && selectedRowNumber in 1..8 && chessController.isBlackPawn(
                 chessController.get(selectedRowNumber - 1)
@@ -245,24 +243,17 @@ class ChessView @JvmOverloads constructor(
 
         if (isPawnReady && bitmap != null) {
             canvas.drawBitmap(bitmap!!, centerX, topY, paint)
+            checkPawnPromotion(centerX, topY)
         } else {
             canvas.drawCircle(centerX, indicatorY, 22f, paint)
         }
     }
 
-    private fun checkPawnPromotion(y: Float, min: Int, size: Float) {
-        val centerX = width / 2f
-        val indicatorY = if (isWhiteTurn) y - size / 2 else y + min + size / 2
-        val topY = indicatorY - size / 4
+    private fun checkPawnPromotion(
+        centerX: Float, topY: Float
+    ) {
 
-        val isPawnReady =
-            (isWhiteTurn && selectedRowNumber in 57..64 && chessController.isWhitePawn(
-                chessController.get(selectedRowNumber - 1)
-            )) || (!isWhiteTurn && selectedRowNumber in 1..8 && chessController.isBlackPawn(
-                chessController.get(selectedRowNumber - 1)
-            ))
-
-        if (isPawnReady && bitmap != null && touchedX in centerX..centerX + bitmap!!.width && touchedY in topY..topY + bitmap!!.height) {
+        if (bitmap != null && touchedX in centerX..centerX + bitmap!!.width && touchedY in topY..topY + bitmap!!.height) {
             val symbols = chessController.getPromotedSymbols(isWhiteTurn)
             var selectedSymbolIndex = 0
 
@@ -271,7 +262,7 @@ class ChessView @JvmOverloads constructor(
                     selectedSymbolIndex = which
                 }.setPositiveButton("Okay") { _, _ ->
                     val symbol = symbols[selectedSymbolIndex]
-                    chessController.set(selectedRowNumber - 1, symbol)
+                    chessController.promotePawn(selectedRowNumber - 1, symbol)
                     message("The Pawn Promoted to $symbol")
                     touchedX = 0f
                     touchedY = 0f
