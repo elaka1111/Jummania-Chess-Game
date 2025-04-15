@@ -2,7 +2,6 @@ package com.jummania
 
 import android.app.Activity
 import android.content.Context
-import android.util.Log
 import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jummania.ChessView.Companion.isWhiteTurn
@@ -179,9 +178,7 @@ internal class ChessController(
         // Handle capture or king checkmate
         if (toPiece != null) {
             if (toPiece.isKing()) {
-                MaterialAlertDialogBuilder(context).setTitle("Game Over")
-                    .setPositiveButton("Restart") { _, _ -> (context as Activity).recreate() }
-                    .setCancelable(false).show()
+                showEndDialogue()
             } else {
                 message("${fromPiece.symbol} attacks and captures ${toPiece.symbol}")
             }
@@ -194,9 +191,10 @@ internal class ChessController(
     private fun isCheck(isWhitePiece: Boolean): Boolean {
         val kingPosition =
             chessBoard.indexOfFirst { it?.isKing() == true && it.color == if (isWhitePiece) pieceLightColor else pieceDarkColor }
-        if (kingPosition == -1) return false
-
-        var hasEnemy = false
+        if (kingPosition == -1) {
+            showEndDialogue()
+            return false
+        }
 
         for (position in chessBoard.indices) {
             val piece = chessBoard[position]
@@ -204,54 +202,42 @@ internal class ChessController(
             when {
                 piece.isPawn() -> {
                     if (isPawnMoveAllowed(position, kingPosition, !isWhitePiece)) {
-                        Log.d("Jjj", "isCheck: isPawn")
-                        hasEnemy = true
-                        break
+                        return true
                     }
                 }
 
                 piece.isKnight() -> {
                     if (isKnightMoveAllowed(position, kingPosition, !isWhitePiece)) {
-                        Log.d("Jjj", "isCheck: isKnight")
-                        hasEnemy = true
-                        break
+                        return true
                     }
                 }
 
                 piece.isBishop() -> {
                     if (isBishopMoveAllowed(position, kingPosition, !isWhitePiece)) {
-                        Log.d("Jjj", "isCheck: isBishop")
-                        hasEnemy = true
-                        break
+                        return true
                     }
                 }
 
                 piece.isRook() -> {
                     if (isRookMoveAllowed(position, kingPosition, !isWhitePiece)) {
-                        Log.d("Jjj", "isCheck: isRook")
-                        hasEnemy = true
-                        break
+                        return true
                     }
                 }
 
                 piece.isQueen() -> {
                     if (isQueenMoveAllowed(position, kingPosition, !isWhitePiece)) {
-                        Log.d("Jjj", "isCheck: isQueen")
-                        hasEnemy = true
-                        break
+                        return true
                     }
                 }
 
                 piece.isKing() -> {
                     if (isKingMoveAllowed(position, kingPosition, !isWhitePiece)) {
-                        Log.d("Jjj", "isCheck: isKing")
-                        hasEnemy = true
-                        break
+                        return true
                     }
                 }
             }
         }
-        return hasEnemy
+        return false
     }
 
 
@@ -443,6 +429,12 @@ internal class ChessController(
 
     private fun createPieces(symbols: Array<String>, color: Int): Array<Piece> {
         return Array(symbols.size) { i -> Piece(symbols[i], color) }
+    }
+
+    private fun showEndDialogue() {
+        MaterialAlertDialogBuilder(context).setTitle("Game Over")
+            .setPositiveButton("Restart") { _, _ -> (context as Activity).recreate() }
+            .setCancelable(false).show()
     }
 
 }

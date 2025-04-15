@@ -5,11 +5,13 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jummania.ChessView
 import com.jummania.SymbolStyle
 import com.jummania.chess_game.R
@@ -24,9 +26,9 @@ class GameFragment : Fragment(R.layout.fragment_game) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val chessView = view.findViewById<ChessView>(R.id.chessView)
+        val mActivity = activity ?: return
 
-        val mActivity = requireActivity()
+        val chessView = view.findViewById<ChessView>(R.id.chessView)
 
         val preferenceManager = PreferenceManager.getDefaultSharedPreferences(mActivity)
 
@@ -76,6 +78,13 @@ class GameFragment : Fragment(R.layout.fragment_game) {
         }
 
         mWindow.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        mActivity.onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            MaterialAlertDialogBuilder(mActivity).setTitle("Are you sure you want to exit?")
+                .setMessage("Any unsaved progress may be lost.")
+                .setPositiveButton("Exit") { _, _ -> mActivity.finish() }
+                .setNegativeButton("Cancel", null).show()
+        }
     }
 
 
