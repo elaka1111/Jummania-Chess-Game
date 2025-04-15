@@ -116,41 +116,11 @@ internal class ChessController(
             return
         }
 
-        // Function to get valid move sequence for the piece
-        fun isMoveAllowed(
-            sequence: Int, horizontal: Boolean, vertical: Boolean, diagonal: Boolean
-        ): Boolean {
-            return isMoveAllowed(
-                fromIndex, toIndex, isFromWhitePiece, sequence, horizontal, vertical, diagonal
-            )
-        }
-
         // Piece-specific movement rules
         when {
-            fromPiece.isKing() -> {
-                if (!isMoveAllowed(2, horizontal = true, vertical = true, diagonal = false)) {
-                    message("The King can only move one square in any direction.")
-                    return
-                }
-            }
-
-            fromPiece.isRook() -> {
-                if (!isMoveAllowed(8, horizontal = true, vertical = true, diagonal = false)) {
-                    message("The Rook can only move horizontally or vertically.")
-                    return
-                }
-            }
-
-            fromPiece.isBishop() -> {
-                if (!isMoveAllowed(8, horizontal = false, vertical = false, diagonal = true)) {
-                    message("The Bishop can only move diagonally.")
-                    return
-                }
-            }
-
-            fromPiece.isQueen() -> {
-                if (!isMoveAllowed(8, horizontal = true, vertical = true, diagonal = true)) {
-                    message("The Queen can move horizontally, vertically, or diagonally.")
+            fromPiece.isPawn() -> {
+                if (!isPawnMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                    message("The Pawn can only move one square forward.")
                     return
                 }
             }
@@ -162,9 +132,30 @@ internal class ChessController(
                 }
             }
 
-            fromPiece.isPawn() -> {
-                if (!isPawnMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
-                    message("The Pawn can only move one square forward.")
+            fromPiece.isBishop() -> {
+                if (!isBishopMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                    message("The Bishop can only move diagonally.")
+                    return
+                }
+            }
+
+            fromPiece.isRook() -> {
+                if (!isRookMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                    message("The Rook can only move horizontally or vertically.")
+                    return
+                }
+            }
+
+            fromPiece.isQueen() -> {
+                if (!isQueenMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                    message("The Queen can move horizontally, vertically, or diagonally.")
+                    return
+                }
+            }
+
+            fromPiece.isKing() -> {
+                if (!isKingMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                    message("The King can only move one square in any direction.")
                     return
                 }
             }
@@ -205,60 +196,15 @@ internal class ChessController(
             chessBoard.indexOfFirst { it?.isKing() == true && it.color == if (isWhitePiece) pieceLightColor else pieceDarkColor }
         if (kingPosition == -1) return false
 
-        // Function to get valid move sequence for the piece
-        fun isMoveAllowed(
-            position: Int, sequence: Int, horizontal: Boolean, vertical: Boolean, diagonal: Boolean
-        ): Boolean {
-            return isMoveAllowed(
-                position, kingPosition, !isWhitePiece, sequence, horizontal, vertical, diagonal
-            )
-        }
-
         var hasEnemy = false
 
         for (position in chessBoard.indices) {
             val piece = chessBoard[position]
             if (piece == null || isFriend(piece, isWhitePiece)) continue
             when {
-                piece.isKing() -> {
-                    if (isMoveAllowed(
-                            position, 2, horizontal = true, vertical = true, diagonal = false
-                        )
-                    ) {
-                        Log.d("Jjj", "isCheck: isKing")
-                        hasEnemy = true
-                        break
-                    }
-                }
-
-                piece.isRook() -> {
-                    if (isMoveAllowed(
-                            position, 8, horizontal = true, vertical = true, diagonal = false
-                        )
-                    ) {
-                        Log.d("Jjj", "isCheck: isRook")
-                        hasEnemy = true
-                        break
-                    }
-                }
-
-                piece.isBishop() -> {
-                    if (isMoveAllowed(
-                            position, 8, horizontal = false, vertical = false, diagonal = true
-                        )
-                    ) {
-                        Log.d("Jjj", "isCheck: isBishop")
-                        hasEnemy = true
-                        break
-                    }
-                }
-
-                piece.isQueen() -> {
-                    if (isMoveAllowed(
-                            position, 8, horizontal = true, vertical = true, diagonal = true
-                        )
-                    ) {
-                        Log.d("Jjj", "isCheck: isQueen")
+                piece.isPawn() -> {
+                    if (isPawnMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                        Log.d("Jjj", "isCheck: isPawn")
                         hasEnemy = true
                         break
                     }
@@ -272,9 +218,33 @@ internal class ChessController(
                     }
                 }
 
-                piece.isPawn() -> {
-                    if (isPawnMoveAllowed(position, kingPosition, !isWhitePiece)) {
-                        Log.d("Jjj", "isCheck: isPawn")
+                piece.isBishop() -> {
+                    if (isBishopMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                        Log.d("Jjj", "isCheck: isBishop")
+                        hasEnemy = true
+                        break
+                    }
+                }
+
+                piece.isRook() -> {
+                    if (isRookMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                        Log.d("Jjj", "isCheck: isRook")
+                        hasEnemy = true
+                        break
+                    }
+                }
+
+                piece.isQueen() -> {
+                    if (isQueenMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                        Log.d("Jjj", "isCheck: isQueen")
+                        hasEnemy = true
+                        break
+                    }
+                }
+
+                piece.isKing() -> {
+                    if (isKingMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                        Log.d("Jjj", "isCheck: isKing")
                         hasEnemy = true
                         break
                     }
@@ -374,7 +344,36 @@ internal class ChessController(
         return false
     }
 
+    // KING
+    private fun isKingMoveAllowed(from: Int, to: Int, isWhitePiece: Boolean): Boolean {
+        return isMoveAllowed(
+            from, to, isWhitePiece, 2, horizontal = true, vertical = true, diagonal = true
+        )
+    }
 
+    // QUEEN
+    private fun isQueenMoveAllowed(from: Int, to: Int, isWhitePiece: Boolean): Boolean {
+        return isMoveAllowed(
+            from, to, isWhitePiece, 8, horizontal = true, vertical = true, diagonal = true
+        )
+    }
+
+    // ROOK
+    private fun isRookMoveAllowed(from: Int, to: Int, isWhitePiece: Boolean): Boolean {
+        return isMoveAllowed(
+            from, to, isWhitePiece, 8, horizontal = true, vertical = true, diagonal = false
+        )
+    }
+
+    // BISHOP
+    private fun isBishopMoveAllowed(from: Int, to: Int, isWhitePiece: Boolean): Boolean {
+        return isMoveAllowed(
+            from, to, isWhitePiece, 8, horizontal = false, vertical = false, diagonal = true
+        )
+    }
+
+
+    // KNIGHT
     private fun isKnightMoveAllowed(
         from: Int, to: Int, isWhitePiece: Boolean
     ): Boolean {
@@ -393,6 +392,7 @@ internal class ChessController(
     }
 
 
+    // PAWN
     private fun isPawnMoveAllowed(from: Int, to: Int, isWhitePiece: Boolean): Boolean {
         if (from == to) return false
 
