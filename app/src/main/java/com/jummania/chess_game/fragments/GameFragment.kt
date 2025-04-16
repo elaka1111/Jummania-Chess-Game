@@ -1,10 +1,10 @@
 package com.jummania.chess_game.fragments
 
 import android.graphics.Color
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowInsetsCompat
@@ -36,7 +36,14 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
             val playMusic = getBoolean("playMusic", false)
             if (playMusic) {
-                Toast.makeText(context, "Play music is On", Toast.LENGTH_SHORT).show()
+                val mediaPlayer = MediaPlayer.create(mActivity, R.raw.music)
+
+                mediaPlayer.setOnCompletionListener {
+                    mediaPlayer.seekTo(mediaPlayer.duration / 2)
+                    mediaPlayer.start()
+                }
+
+                mediaPlayer.start()
             }
 
             chessView.setSoundEffectEnabled(getBoolean("clickSound", true))
