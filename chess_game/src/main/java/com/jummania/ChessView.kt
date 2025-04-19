@@ -89,7 +89,7 @@ class ChessView @JvmOverloads constructor(
                     R.styleable.ChessView_strokeLightColor, chessController.pieceDarkColor
                 ),
                 typedArray.getColor(
-                    R.styleable.ChessView_strokeDarkColor, chessController.pieceLightColor
+                    R.styleable.ChessView_strokeDarkColor, chessController.pieceDarkColor
                 )
             )
 
@@ -112,12 +112,13 @@ class ChessView @JvmOverloads constructor(
 
 
     override fun onDraw(canvas: Canvas) {
+
         val minSize = minOf(height, width) - 55
         val boardLeft = (width - minSize) / 2f
         val boardTop = (height - minSize) / 2f
         val squareSize = minSize / 8f
 
-        var rowIndex = 0
+        var rowIndex = -1
         var touchedInside = false
 
         for (row in 0 until 8) {
@@ -145,7 +146,7 @@ class ChessView @JvmOverloads constructor(
                 }
 
                 // Draw piece
-                val piece = chessController.get(rowIndex - 1)
+                val piece = chessController.get(rowIndex)
                 if (piece != null) {
                     drawSymbol(
                         canvas,
@@ -176,8 +177,7 @@ class ChessView @JvmOverloads constructor(
                 true
             }
 
-            isSelected && selectedRowNumber > 0 -> {
-                chessController.swapTo(selectedRowNumber - 1, rowNumber - 1)
+            isSelected && chessController.swapTo(selectedRowNumber, rowNumber) -> {
                 isSelected = false
                 selectedRowNumber = -1
                 isInvalidate = true
@@ -236,9 +236,9 @@ class ChessView @JvmOverloads constructor(
 
         val isPawnReady =
             (isWhiteTurn && selectedRowNumber in 57..64 && chessController.isLightPawn(
-                chessController.get(selectedRowNumber - 1)
+                chessController.get(selectedRowNumber)
             )) || (!isWhiteTurn && selectedRowNumber in 1..8 && chessController.isBlackPawn(
-                chessController.get(selectedRowNumber - 1)
+                chessController.get(selectedRowNumber)
             ))
 
         if (isPawnReady && bitmap != null) {
@@ -262,7 +262,7 @@ class ChessView @JvmOverloads constructor(
                     selectedSymbolIndex = which
                 }.setPositiveButton("Okay") { _, _ ->
                     val symbol = symbols[selectedSymbolIndex]
-                    chessController.promotePawn(selectedRowNumber - 1, symbol)
+                    chessController.promotePawn(selectedRowNumber, symbol)
                     message("The Pawn Promoted to $symbol")
                     touchedX = 0f
                     touchedY = 0f
@@ -372,8 +372,8 @@ class ChessView @JvmOverloads constructor(
         if (enableSoundEffect) {
             playSoundEffect(SoundEffectConstants.CLICK)
         }
-        invalidate()
         isInvalidate = false
+        invalidate()
         return super.performClick()
     }
 

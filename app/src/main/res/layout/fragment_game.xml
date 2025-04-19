@@ -14,7 +14,7 @@
 
     chess:pieceDarkColor="#000"
     chess:pieceLightColor="#fff"
-    chess:strokeLightColor="#fff"
+    chess:strokeLightColor="#000"
     chess:strokeDarkColor="#000"
 
     chess:symbolStyle="symbola" />

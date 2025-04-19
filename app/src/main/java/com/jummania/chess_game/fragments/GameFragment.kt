@@ -64,13 +64,13 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
             chessView.setEnableStroke(
                 getBoolean("enableStroke", true),
-                getInt("strokeLightColor", Color.WHITE),
+                getInt("strokeLightColor", Color.BLACK),
                 getInt("strokeDarkColor", Color.BLACK)
             )
 
             chessView.setSymbolStyle(
                 SymbolStyle.fromInt(
-                    getString("symbolStyle", "1")!!.toInt()
+                    getString("symbolStyle", "3")!!.toInt()
                 ), getBoolean("isBoldSymbol", false)
             )
         }

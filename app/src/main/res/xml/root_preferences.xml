@@ -63,7 +63,7 @@
 
 
         <net.margaritov.preference.colorpicker.ColorPickerPreference
-            android:defaultValue="#ffffff"
+            android:defaultValue="#000000"
             android:key="strokeLightColor"
             android:title="Stroke Color for Light Pieces" />
 

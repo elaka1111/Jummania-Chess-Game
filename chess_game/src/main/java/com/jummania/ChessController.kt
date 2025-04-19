@@ -18,7 +18,7 @@ internal class ChessController(
     private val context: Context,
     val isLightFilled: Boolean,
     val isDarkFilled: Boolean,
-    val pieceLightColor: Int,
+    private val pieceLightColor: Int,
     val pieceDarkColor: Int
 ) {
 
@@ -35,6 +35,9 @@ internal class ChessController(
     } else {
         createPieces(unfilledSymbols, pieceDarkColor)
     }
+
+    private val whiteCastling = Castling()
+    private val blackCastling = Castling()
 
     private val chessBoard = arrayOfNulls<Piece>(64)
 
@@ -54,7 +57,7 @@ internal class ChessController(
         return null
     }
 
-    private fun movePiece(fromIndex: Int, toIndex: Int, piece: Piece?) {
+    private fun movePiece(fromIndex: Int, toIndex: Int, piece: Piece) {
         chessBoard[toIndex] = piece
         chessBoard[fromIndex] = null
     }
@@ -94,68 +97,70 @@ internal class ChessController(
         else arrayOf("♕", "♖", "♗", "♘") // Unfilled (light style)
     }
 
-    fun swapTo(fromIndex: Int, toIndex: Int) {
-        if (fromIndex !in indices || toIndex !in indices) return
+    fun swapTo(fromIndex: Int, toIndex: Int): Boolean {
+        if (fromIndex !in indices || toIndex !in indices) return false
 
-        val fromPiece = get(fromIndex) ?: return
+        val fromPiece = get(fromIndex) ?: return false
 
         val isFromWhitePiece = isLightPiece(fromPiece)
 
         // Check for turn validity
-        if ((isFromWhitePiece && !isWhiteTurn) || (!isFromWhitePiece && isWhiteTurn)) {
+        if (isWhiteTurn != isFromWhitePiece) {
             message("It's not your turn!")
-            return
+            return true
         }
 
         val toPiece = get(toIndex)
 
         // Check if the destination square contains a piece of the same color
-        if (isFriend(toPiece, isFromWhitePiece)) {
-            message("${if (isFromWhitePiece) "White" else "Black"} cannot move to its own piece.")
-            return
-        }
+        if (isFriend(toPiece, isFromWhitePiece)) return false
+
+        val isRook = fromPiece.isRook()
+        val isKing = fromPiece.isKing()
 
         // Piece-specific movement rules
         when {
             fromPiece.isPawn() -> {
                 if (!isPawnMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
                     message("The Pawn can only move one square forward.")
-                    return
+                    return true
                 }
             }
 
             fromPiece.isKnight() -> {
                 if (!isKnightMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
                     message("The Knight can only move in an L shape.")
-                    return
+                    return true
                 }
             }
 
             fromPiece.isBishop() -> {
                 if (!isBishopMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
                     message("The Bishop can only move diagonally.")
-                    return
+                    return true
                 }
             }
 
-            fromPiece.isRook() -> {
+            isRook -> {
                 if (!isRookMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
                     message("The Rook can only move horizontally or vertically.")
-                    return
+                    return true
                 }
             }
 
             fromPiece.isQueen() -> {
                 if (!isQueenMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
                     message("The Queen can move horizontally, vertically, or diagonally.")
-                    return
+                    return true
                 }
             }
 
-            fromPiece.isKing() -> {
-                if (!isKingMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
-                    message("The King can only move one square in any direction.")
-                    return
+            isKing -> {
+                if (!isCastled(fromIndex, toIndex, isFromWhitePiece, fromPiece, toPiece)) {
+                    if (!isKingMoveAllowed(fromIndex, toIndex, 2, isFromWhitePiece)) {
+                        message("The King can only move one square in any direction.")
+                        return true
+                    }
                 }
             }
         }
@@ -165,15 +170,25 @@ internal class ChessController(
             movePiece(fromIndex, toIndex, fromPiece)
 
             if (isCheck(isFromWhitePiece)) {
-                chessBoard[toIndex] = toPiece
-                chessBoard[fromIndex] = fromPiece
+                // Reverse the move
+                reverseMove(fromIndex, toIndex, fromPiece, toPiece)
                 message("You cannot move because your 'King' is in check.")
-                return
+                return true
             }
         }
 
-        // Move the piece
         movePiece(fromIndex, toIndex, fromPiece)
+
+        if (isRook) {
+            when (fromIndex) {
+                0 -> whiteCastling.markFirstRookMoved()  // White's first rook
+                7 -> whiteCastling.markSecondRookMoved()  // White's second rook
+                56 -> blackCastling.markFirstRookMoved()  // Black's first rook
+                63 -> blackCastling.markSecondRookMoved()  // Black's second rook
+            }
+        } else if (isKing) {
+            if (isWhiteTurn) whiteCastling.markKingMoved() else blackCastling.markKingMoved()
+        }
 
         // Handle capture or king checkmate
         if (toPiece != null) {
@@ -184,8 +199,8 @@ internal class ChessController(
             }
         }
 
-        // Change the turn
-        isWhiteTurn = !isFromWhitePiece
+        isWhiteTurn = !isWhiteTurn
+        return true
     }
 
     private fun isCheck(isWhitePiece: Boolean): Boolean {
@@ -231,7 +246,7 @@ internal class ChessController(
                 }
 
                 piece.isKing() -> {
-                    if (isKingMoveAllowed(position, kingPosition, !isWhitePiece)) {
+                    if (isKingMoveAllowed(position, kingPosition, 2, !isWhitePiece)) {
                         return true
                     }
                 }
@@ -331,9 +346,11 @@ internal class ChessController(
     }
 
     // KING
-    private fun isKingMoveAllowed(from: Int, to: Int, isWhitePiece: Boolean): Boolean {
+    private fun isKingMoveAllowed(
+        from: Int, to: Int, sequence: Int, isWhitePiece: Boolean
+    ): Boolean {
         return isMoveAllowed(
-            from, to, isWhitePiece, 2, horizontal = true, vertical = true, diagonal = true
+            from, to, isWhitePiece, sequence, horizontal = true, vertical = true, diagonal = true
         )
     }
 
@@ -436,6 +453,86 @@ internal class ChessController(
             .setPositiveButton("Restart") { _, _ -> (context as Activity).recreate() }
             .setCancelable(false).show()
     }
+
+    private fun kingSideCastleAvailable(isWhitePiece: Boolean): Boolean {
+        return if (isWhiteTurn) {
+            whiteCastling.isKingSideCastlingPossible() && isKingMoveAllowed(4, 6, 3, isWhitePiece)
+        } else {
+            blackCastling.isKingSideCastlingPossible() && isKingMoveAllowed(60, 62, 3, isWhitePiece)
+        }
+    }
+
+    private fun queenSideCastleAvailable(isWhitePiece: Boolean): Boolean {
+        return if (isWhiteTurn) {
+            whiteCastling.isQueenSideCastlingPossible() && isKingMoveAllowed(4, 2, 3, isWhitePiece)
+        } else {
+            blackCastling.isQueenSideCastlingPossible() && isKingMoveAllowed(
+                60, 58, 3, isWhitePiece
+            )
+        }
+    }
+
+    private fun isCastled(
+        fromIndex: Int, toIndex: Int, isFromWhitePiece: Boolean, fromPiece: Piece, toPiece: Piece?
+    ): Boolean {
+        val rookFrom: Int
+        val rookTo: Int
+
+        if ((isWhiteTurn && fromIndex == 4 && (toIndex == 2 || toIndex == 6)) || (!isWhiteTurn && fromIndex == 60 && (toIndex == 58 || toIndex == 62))) {
+
+            if (isCheck(isFromWhitePiece)) return false
+
+            when (toIndex) {
+                2 -> if (queenSideCastleAvailable(isFromWhitePiece)) {
+                    rookFrom = 0
+                    rookTo = 3
+                } else return false
+
+                6 -> if (kingSideCastleAvailable(isFromWhitePiece)) {
+                    rookFrom = 7
+                    rookTo = 5
+                } else return false
+
+                58 -> if (queenSideCastleAvailable(isFromWhitePiece)) {
+                    rookFrom = 56
+                    rookTo = 59
+                } else return false
+
+                62 -> if (kingSideCastleAvailable(isFromWhitePiece)) {
+                    rookFrom = 63
+                    rookTo = 61
+                } else return false
+
+                else -> return false
+            }
+
+            val fromRookPiece = get(rookFrom)
+
+            if (fromRookPiece == null || !fromRookPiece.isRook()) return false
+
+            movePiece(fromIndex, toIndex, fromPiece)
+            movePiece(rookFrom, rookTo, fromRookPiece)
+
+            if (isCheck(isFromWhitePiece)) {
+                // Reverse move
+                reverseMove(rookFrom, rookTo, fromRookPiece, null)
+                reverseMove(fromIndex, toIndex, fromPiece, toPiece)
+                message("You cannot move because your 'King' is in check.")
+                return false
+            }
+
+            message("The King has castled.")
+            return true
+        }
+
+        return false
+    }
+
+    private fun reverseMove(fromIndex: Int, toIndex: Int, fromPiece: Piece, toPiece: Piece?) {
+        chessBoard[fromIndex] = fromPiece
+        chessBoard[toIndex] = toPiece
+    }
+
 
 }
 
