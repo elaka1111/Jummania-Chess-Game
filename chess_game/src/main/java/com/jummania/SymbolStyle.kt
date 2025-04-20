@@ -13,7 +13,7 @@ import androidx.annotation.Keep
  * Dhaka, Bangladesh
  */
 @Keep
-enum class SymbolStyle(val value: Int) {
+enum class SymbolStyle(private val value: Int) {
 
     /** System default or standard font. */
     STANDARD(0),
