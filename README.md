@@ -16,7 +16,7 @@
    </a>
 </p>
 
-# Chess Game for Android
+# Jummania Chess Game for Android
 
 A fully-featured Chess Game for Android, built with Kotlin and Android Studio, offering smooth interactions, realistic piece movements, customizable sound effects, and various themes for chessboard squares and pieces. It supports multiple symbol styles and stroke options for a personalized experience.
 
