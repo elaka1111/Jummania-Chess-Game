@@ -70,7 +70,7 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
             chessView.setSymbolStyle(
                 SymbolStyle.fromInt(
-                    getString("symbolStyle", "3")!!.toInt()
+                    getString("symbolStyle", "1")!!.toInt()
                 ), getBoolean("isBoldSymbol", false)
             )
         }

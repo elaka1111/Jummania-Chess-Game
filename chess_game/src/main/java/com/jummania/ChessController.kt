@@ -36,6 +36,8 @@ internal class ChessController(
         createPieces(unfilledSymbols, pieceDarkColor)
     }
 
+    private lateinit var afterRevival: (() -> Unit)
+
     private val whiteCastling = Castling()
     private val blackCastling = Castling()
 
@@ -62,24 +64,8 @@ internal class ChessController(
         chessBoard[fromIndex] = null
     }
 
-    fun promotePawn(position: Int, symbol: String) {
-        val piece = get(position)
-        if (piece != null) {
-            piece.symbol = symbol
-            chessBoard[position] = piece
-        }
-    }
-
     fun isLightPiece(piece: Piece?): Boolean {
         return piece?.color == pieceLightColor
-    }
-
-    fun isLightPawn(piece: Piece?): Boolean {
-        return piece != null && piece.isPawn() && piece.color == pieceLightColor
-    }
-
-    fun isBlackPawn(piece: Piece?): Boolean {
-        return piece != null && piece.isPawn() && piece.color == pieceDarkColor
     }
 
     private fun isFriend(piece: Piece?, isWhitePiece: Boolean): Boolean {
@@ -91,29 +77,21 @@ internal class ChessController(
         return piece == null || !isFriend(piece, isWhitePiece)
     }
 
-    fun getPromotedSymbols(isWhiteTurn: Boolean): Array<String> {
-        val filled = if (isWhiteTurn) isLightFilled else isDarkFilled
-        return if (filled) arrayOf("♛", "♜", "♝", "♞") // Filled (dark style)
-        else arrayOf("♕", "♖", "♗", "♘") // Unfilled (light style)
-    }
-
     fun swapTo(fromIndex: Int, toIndex: Int): Boolean {
         if (fromIndex !in indices || toIndex !in indices) return false
 
-        val fromPiece = get(fromIndex) ?: return false
-
-        val isFromWhitePiece = isLightPiece(fromPiece)
+        val fromPiece = chessBoard[fromIndex] ?: return false
 
         // Check for turn validity
-        if (isWhiteTurn != isFromWhitePiece) {
+        if (isWhiteTurn != isLightPiece(fromPiece)) {
             message("It's not your turn!")
             return true
         }
 
-        val toPiece = get(toIndex)
+        val toPiece = chessBoard[toIndex]
 
         // Check if the destination square contains a piece of the same color
-        if (isFriend(toPiece, isFromWhitePiece)) return false
+        if (isFriend(toPiece, isWhiteTurn)) return false
 
         val isRook = fromPiece.isRook()
         val isKing = fromPiece.isKing()
@@ -121,63 +99,60 @@ internal class ChessController(
         // Piece-specific movement rules
         when {
             fromPiece.isPawn() -> {
-                if (!isPawnMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                if (!isPawnMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
                     message("The Pawn can only move one square forward.")
                     return true
                 }
             }
 
             fromPiece.isKnight() -> {
-                if (!isKnightMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                if (!isKnightMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
                     message("The Knight can only move in an L shape.")
                     return true
                 }
             }
 
             fromPiece.isBishop() -> {
-                if (!isBishopMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                if (!isBishopMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
                     message("The Bishop can only move diagonally.")
                     return true
                 }
             }
 
             isRook -> {
-                if (!isRookMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                if (!isRookMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
                     message("The Rook can only move horizontally or vertically.")
                     return true
                 }
             }
 
             fromPiece.isQueen() -> {
-                if (!isQueenMoveAllowed(fromIndex, toIndex, isFromWhitePiece)) {
+                if (!isQueenMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
                     message("The Queen can move horizontally, vertically, or diagonally.")
                     return true
                 }
             }
 
             isKing -> {
-                if (!isCastled(fromIndex, toIndex, isFromWhitePiece, fromPiece, toPiece)) {
-                    if (!isKingMoveAllowed(fromIndex, toIndex, 2, isFromWhitePiece)) {
-                        message("The King can only move one square in any direction.")
-                        return true
-                    }
+                if (isCastled(fromIndex, toIndex, isWhiteTurn, fromPiece, toPiece)) {
+                    isWhiteTurn = !isWhiteTurn
+                    return true
+                } else if (!isKingMoveAllowed(fromIndex, toIndex, 2, isWhiteTurn)) {
+                    message("The King can only move one square in any direction.")
+                    return true
                 }
             }
         }
 
-        if (isCheck(isFromWhitePiece)) {
-            // Move the piece
-            movePiece(fromIndex, toIndex, fromPiece)
+        movePiece(fromIndex, toIndex, fromPiece)
 
-            if (isCheck(isFromWhitePiece)) {
-                // Reverse the move
-                reverseMove(fromIndex, toIndex, fromPiece, toPiece)
-                message("You cannot move because your 'King' is in check.")
-                return true
-            }
+        if (isCheck(isWhiteTurn)) {
+            // Reverse the move
+            reverseMove(fromIndex, toIndex, fromPiece, toPiece)
+            message("Illegal move: You must get out of check and can't put your King in danger.")
+            return true
         }
 
-        movePiece(fromIndex, toIndex, fromPiece)
 
         if (isRook) {
             when (fromIndex) {
@@ -188,6 +163,8 @@ internal class ChessController(
             }
         } else if (isKing) {
             if (isWhiteTurn) whiteCastling.markKingMoved() else blackCastling.markKingMoved()
+        } else if (fromPiece.isPawn() && pawnCanRevive(toIndex)) {
+            revivePawn(toIndex)
         }
 
         // Handle capture or king checkmate
@@ -480,8 +457,6 @@ internal class ChessController(
 
         if ((isWhiteTurn && fromIndex == 4 && (toIndex == 2 || toIndex == 6)) || (!isWhiteTurn && fromIndex == 60 && (toIndex == 58 || toIndex == 62))) {
 
-            if (isCheck(isFromWhitePiece)) return false
-
             when (toIndex) {
                 2 -> if (queenSideCastleAvailable(isFromWhitePiece)) {
                     rookFrom = 0
@@ -506,9 +481,11 @@ internal class ChessController(
                 else -> return false
             }
 
-            val fromRookPiece = get(rookFrom)
+            val fromRookPiece = chessBoard[rookFrom]
 
             if (fromRookPiece == null || !fromRookPiece.isRook()) return false
+
+            if (isCheck(isFromWhitePiece)) return false
 
             movePiece(fromIndex, toIndex, fromPiece)
             movePiece(rookFrom, rookTo, fromRookPiece)
@@ -517,9 +494,12 @@ internal class ChessController(
                 // Reverse move
                 reverseMove(rookFrom, rookTo, fromRookPiece, null)
                 reverseMove(fromIndex, toIndex, fromPiece, toPiece)
-                message("You cannot move because your 'King' is in check.")
+                message("Illegal move: Your King would be in check.")
                 return false
             }
+
+            if (isFromWhitePiece) whiteCastling.markCastled()
+            else blackCastling.markCastled()
 
             message("The King has castled.")
             return true
@@ -531,6 +511,38 @@ internal class ChessController(
     private fun reverseMove(fromIndex: Int, toIndex: Int, fromPiece: Piece, toPiece: Piece?) {
         chessBoard[fromIndex] = fromPiece
         chessBoard[toIndex] = toPiece
+    }
+
+    fun pawnCanRevive(position: Int): Boolean {
+        return (isWhiteTurn && position in 56..63) || (!isWhiteTurn && position in 0..7) && chessBoard[position]?.isPawn() == true
+    }
+
+    fun revivePawn(position: Int) {
+        val filled = if (isWhiteTurn) isLightFilled else isDarkFilled
+        val symbols = if (filled) arrayOf("♛", "♜", "♝", "♞")
+        else arrayOf("♕", "♖", "♗", "♘")
+
+        var selectedSymbolIndex = 0
+
+        MaterialAlertDialogBuilder(context).setTitle("Revive Your Pawn")
+            .setSingleChoiceItems(symbols, selectedSymbolIndex) { _, which ->
+                selectedSymbolIndex = which
+            }.setPositiveButton("Okay") { _, _ ->
+                val symbol = symbols[selectedSymbolIndex]
+
+                val piece = chessBoard[position]
+                if (piece != null) {
+                    piece.symbol = symbol
+                    chessBoard[position] = piece
+                }
+
+                afterRevival.invoke()
+                message("The Pawn revived to $symbol")
+            }.setNegativeButton("Cancel", null).show()
+    }
+
+    fun setAfterRevival(afterRevival: () -> Unit) {
+        this.afterRevival = afterRevival
     }
 
 

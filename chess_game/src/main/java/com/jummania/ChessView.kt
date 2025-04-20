@@ -11,13 +11,11 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.SoundEffectConstants
 import android.view.View
-import android.widget.Toast
 import androidx.annotation.Keep
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.toColorInt
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 /**
@@ -234,14 +232,7 @@ class ChessView @JvmOverloads constructor(
 
         paint.color = Color.RED
 
-        val isPawnReady =
-            (isWhiteTurn && selectedRowNumber in 57..64 && chessController.isLightPawn(
-                chessController.get(selectedRowNumber)
-            )) || (!isWhiteTurn && selectedRowNumber in 1..8 && chessController.isBlackPawn(
-                chessController.get(selectedRowNumber)
-            ))
-
-        if (isPawnReady && bitmap != null) {
+        if (chessController.pawnCanRevive(selectedRowNumber) && bitmap != null) {
             canvas.drawBitmap(bitmap!!, centerX, topY, paint)
             checkPawnPromotion(centerX, topY)
         } else {
@@ -252,24 +243,8 @@ class ChessView @JvmOverloads constructor(
     private fun checkPawnPromotion(
         centerX: Float, topY: Float
     ) {
-
         if (bitmap != null && touchedX in centerX..centerX + bitmap!!.width && touchedY in topY..topY + bitmap!!.height) {
-            val symbols = chessController.getPromotedSymbols(isWhiteTurn)
-            var selectedSymbolIndex = 0
-
-            MaterialAlertDialogBuilder(context).setTitle("Promote Your Pawn")
-                .setSingleChoiceItems(symbols, selectedSymbolIndex) { _, which ->
-                    selectedSymbolIndex = which
-                }.setPositiveButton("Okay") { _, _ ->
-                    val symbol = symbols[selectedSymbolIndex]
-                    chessController.promotePawn(selectedRowNumber, symbol)
-                    message("The Pawn Promoted to $symbol")
-                    touchedX = 0f
-                    touchedY = 0f
-                    selectedRowNumber = -1
-                    isInvalidate = true
-                    invalidate()
-                }.setNegativeButton("Cancel", null).show()
+            chessController.revivePawn(selectedRowNumber)
         }
     }
 
@@ -322,10 +297,6 @@ class ChessView @JvmOverloads constructor(
         return AppCompatResources.getDrawable(context, drawableId)?.toBitmap()
     }
 
-    private fun message(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-    }
-
     fun setSquareColors(light: Int = lightSquareColor, dark: Int = darkSquareColor) {
         lightSquareColor = light
         darkSquareColor = dark
@@ -339,6 +310,14 @@ class ChessView @JvmOverloads constructor(
     ) {
         chessController =
             ChessController(context, isLightFilled, isDarkFilled, lightColor, darkColor)
+
+        chessController.setAfterRevival {
+            touchedX = 0f
+            touchedY = 0f
+            selectedRowNumber = -1
+            isInvalidate = true
+            invalidate()
+        }
     }
 
     fun setSymbolStyle(style: SymbolStyle, useBoldSymbol: Boolean) {

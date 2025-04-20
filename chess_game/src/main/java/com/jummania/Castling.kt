@@ -33,4 +33,10 @@ class Castling {
     fun isQueenSideCastlingPossible(): Boolean {
         return !kingMoved && !firstRookMoved
     }
+
+    fun markCastled() {
+        kingMoved = true
+        firstRookMoved = true
+        secondRookMoved = true
+    }
 }
