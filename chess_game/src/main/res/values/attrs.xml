@@ -1,25 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Declare a custom styleable for the ChessView -->
     <declare-styleable name="ChessView">
-        <attr name="isLightFilled" format="boolean" />
-        <attr name="isDarkFilled" format="boolean" />
-        <attr name="enableStroke" format="boolean" />
-        <attr name="useBoldSymbol" format="boolean" />
-        <attr name="enableSoundEffect" format="boolean" />
 
-        <attr name="lightSquareColor" format="color" />
-        <attr name="darkSquareColor" format="color" />
-        <attr name="pieceLightColor" format="color" />
-        <attr name="pieceDarkColor" format="color" />
-        <attr name="strokeLightColor" format="color" />
-        <attr name="strokeDarkColor" format="color" />
+        <!-- Boolean attributes to control various visual and behavioral aspects of the ChessView -->
+        <attr name="isLightFilled" format="boolean" /> <!-- Whether light-colored pieces are filled -->
+        <attr name="isDarkFilled" format="boolean" />  <!-- Whether dark-colored pieces are filled -->
+        <attr name="enableStroke" format="boolean" />  <!-- Whether to enable or disable stroke effect around pieces -->
+        <attr name="useBoldSymbol" format="boolean" /> <!-- Whether to use bold symbols for chess pieces -->
+        <attr name="enableSoundEffect" format="boolean" /> <!-- Whether to enable or disable sound effects on interactions -->
 
+        <!-- Color attributes for customizing the colors of various elements -->
+        <attr name="lightSquareColor" format="color" /> <!-- Color for light squares on the chessboard -->
+        <attr name="darkSquareColor" format="color" />  <!-- Color for dark squares on the chessboard -->
+        <attr name="pieceLightColor" format="color" />  <!-- Color for light-colored pieces -->
+        <attr name="pieceDarkColor" format="color" />   <!-- Color for dark-colored pieces -->
+        <attr name="strokeLightColor" format="color" /> <!-- Color for the stroke around light-colored pieces -->
+        <attr name="strokeDarkColor" format="color" />  <!-- Color for the stroke around dark-colored pieces -->
+
+        <!-- Attribute to control the symbol style/font used for chess pieces -->
         <attr name="symbolStyle">
-            <flag name="standard" value="0" />         <!-- system/default font -->
-            <flag name="classic" value="1" />         <!-- chess_alpha.ttf -->
-            <flag name="merida" value="2" />          <!-- chess_merida_unicode.ttf -->
-            <flag name="symbola" value="3" />         <!-- symbola.ttf -->
+            <!-- Flag values to specify the font style for chess piece symbols -->
+            <flag name="standard" value="0" />         <!-- Default system font -->
+            <flag name="classic" value="1" />          <!-- Chess font from chess_alpha.ttf -->
+            <flag name="merida" value="2" />           <!-- Chess font from chess_merida_unicode.ttf -->
+            <flag name="symbola" value="3" />          <!-- Chess font from symbola.ttf -->
         </attr>
 
     </declare-styleable>
