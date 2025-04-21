@@ -11,6 +11,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.SoundEffectConstants
 import android.view.View
+import android.widget.Toast
 import androidx.annotation.Keep
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
@@ -328,14 +329,8 @@ class ChessView @JvmOverloads constructor(
             }
 
             // Case 2: A piece is selected and the move is valid (the piece can be swapped)
-            isSelected && chessController.swapTo(selectedRowNumber, rowNumber) -> {
-                // Reset the selection and trigger invalidation after the move
-                isSelected = false
-                selectedRowNumber = -1
-                isInvalidate = true
-                invalidate()
-                true
-            }
+            isSelected && swapTo(selectedRowNumber, rowNumber, false) -> true
+
 
             // Case 3: No invalidation is pending and no piece is selected
             !isInvalidate -> {
@@ -759,6 +754,10 @@ class ChessView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         // Check if the action is a touch down event
         if (event?.action == MotionEvent.ACTION_DOWN) {
+            if (chessController.fromOnline()) {
+                Toast.makeText(context, "ai turn", Toast.LENGTH_SHORT).show()
+                return true
+            }
             // Capture the X and Y coordinates of the touch
             touchedX = event.x
             touchedY = event.y
@@ -772,6 +771,23 @@ class ChessView @JvmOverloads constructor(
 
         // If the event is not a touch down, pass it to the super class for further processing
         return super.onTouchEvent(event)
+    }
+
+    fun withOnlinePlayer(function: (friends: String, enemies: String) -> Unit) {
+        chessController.setOnlinePlayer(function)
+    }
+
+    fun swapTo(fromIndex: Int, toIndex: Int, isOnline: Boolean): Boolean {
+        val isSwapped = chessController.swapTo(fromIndex, toIndex, isOnline)
+        if (isSwapped) {
+            isSelected = false
+            selectedRowNumber = -1
+            isInvalidate = true
+            invalidate()
+        } else if (isOnline) {
+            chessController.sendData()
+        }
+        return isSwapped
     }
 
 }

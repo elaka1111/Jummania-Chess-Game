@@ -50,4 +50,5 @@ dependencies {
     implementation(project(":chess_game"))
     implementation(libs.android.colorpickerpreference)
     implementation(libs.androidx.preference)
+    implementation(libs.okhttp)
 }

@@ -36,6 +36,7 @@ internal class ChessController(
     val pieceDarkColor: Int
 ) {
 
+    private var playingOnline: Boolean = false
 
     // The symbols used for light and dark pieces, depending on whether they are filled or unfilled
     private val filledSymbols =
@@ -66,6 +67,8 @@ internal class ChessController(
     // A function that will be executed after a revival event (e.g., when a piece is revived or game state is restored).
 // The function will be assigned at runtime.
     private lateinit var afterRevival: (() -> Unit)
+
+    private var onlinePlayer: ((String, String) -> Unit)? = null
 
     // Castling objects for white and black players. These objects track castling status.
     private val whiteCastling =
@@ -204,7 +207,10 @@ internal class ChessController(
      * @return Boolean indicating whether the move was successful. Returns `true` if the move was valid,
      *         `false` if the move was invalid or failed.
      */
-    fun swapTo(fromIndex: Int, toIndex: Int): Boolean {
+    fun swapTo(fromIndex: Int, toIndex: Int, isOnline: Boolean): Boolean {
+
+        if (!isOnline && fromOnline()) return false
+
         // Check if both the source and destination indices are valid
         if (fromIndex !in indices || toIndex !in indices) return false
 
@@ -233,6 +239,7 @@ internal class ChessController(
             fromPiece.isPawn() -> {
                 // Check if the pawn's move is allowed
                 if (!isPawnMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
+                    if (isOnline) return false
                     message("The Pawn can only move one square forward.")  // Inform the player of invalid move
                     return true
                 }
@@ -241,6 +248,7 @@ internal class ChessController(
             fromPiece.isKnight() -> {
                 // Check if the knight's move is allowed
                 if (!isKnightMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
+                    if (isOnline) return false
                     message("The Knight can only move in an L shape.")  // Inform the player of invalid move
                     return true
                 }
@@ -249,6 +257,7 @@ internal class ChessController(
             fromPiece.isBishop() -> {
                 // Check if the bishop's move is allowed
                 if (!isBishopMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
+                    if (isOnline) return false
                     message("The Bishop can only move diagonally.")  // Inform the player of invalid move
                     return true
                 }
@@ -257,6 +266,7 @@ internal class ChessController(
             isRook -> {
                 // Check if the rook's move is allowed
                 if (!isRookMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
+                    if (isOnline) return false
                     message("The Rook can only move horizontally or vertically.")  // Inform the player of invalid move
                     return true
                 }
@@ -265,6 +275,7 @@ internal class ChessController(
             fromPiece.isQueen() -> {
                 // Check if the queen's move is allowed
                 if (!isQueenMoveAllowed(fromIndex, toIndex, isWhiteTurn)) {
+                    if (isOnline) return false
                     message("The Queen can move horizontally, vertically, or diagonally.")  // Inform the player of invalid move
                     return true
                 }
@@ -274,8 +285,10 @@ internal class ChessController(
                 // Check if castling is allowed or if the king’s move is valid
                 if (isCastled(fromIndex, toIndex, isWhiteTurn, fromPiece, toPiece)) {
                     isWhiteTurn = !isWhiteTurn  // If castling is successful, switch turns
+                    sendData()
                     return true
                 } else if (!isKingMoveAllowed(fromIndex, toIndex, 2, isWhiteTurn)) {
+                    if (isOnline) return false
                     message("The King can only move one square in any direction.")  // Inform the player of invalid move
                     return true
                 }
@@ -289,6 +302,7 @@ internal class ChessController(
         if (isCheck(isWhiteTurn)) {
             // Reverse the move if it results in the king being in check
             reverseMove(fromIndex, toIndex, fromPiece, toPiece)
+            if (isOnline) return false
             message("Illegal move: You must get out of check and can't put your King in danger.")  // Inform the player of illegal move
             return true
         }
@@ -311,6 +325,7 @@ internal class ChessController(
         if (toPiece != null) {
             if (toPiece.isKing()) {
                 showEndDialogue()  // If the captured piece is a king, show the end dialog (checkmate)
+                return false
             } else {
                 message("${fromPiece.symbol} attacks and captures ${toPiece.symbol}")  // Inform the player of the capture
             }
@@ -318,6 +333,7 @@ internal class ChessController(
 
         // Switch turns after the move
         isWhiteTurn = !isWhiteTurn
+        sendData()
         return true
     }
 
@@ -341,7 +357,7 @@ internal class ChessController(
         }
 
         // Iterate over all opponent pieces to see if any can attack the king's position
-        for (position in chessBoard.indices) {
+        for (position in indices) {
             val piece = chessBoard[position]
             if (piece == null || isFriend(piece, isWhitePiece)) continue
 
@@ -891,6 +907,35 @@ internal class ChessController(
      */
     fun setAfterRevival(afterRevival: () -> Unit) {
         this.afterRevival = afterRevival
+    }
+
+    fun setOnlinePlayer(onlinePlayer: (String, String) -> Unit) {
+        this.onlinePlayer = onlinePlayer
+        this.playingOnline = true
+
+        sendData()
+    }
+
+    fun sendData() {
+        if (fromOnline()) {
+            val friends = StringBuilder()
+            val enemies = StringBuilder()
+            for (position in indices) {
+                val piece = chessBoard[position]
+                if (isFriend(piece, true)) {
+                    friends.append(position).append("position : ").append(piece!!.symbol)
+                        .append(",\n")
+                } else if (isFriend(piece, false)) {
+                    enemies.append(position).append("position : ").append(piece!!.symbol)
+                        .append(",\n")
+                }
+            }
+            onlinePlayer?.invoke(friends.toString(), enemies.toString())
+        }
+    }
+
+    fun fromOnline(): Boolean {
+        return isWhiteTurn && playingOnline
     }
 
 
