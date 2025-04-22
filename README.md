@@ -12,7 +12,7 @@
    <img src="https://img.shields.io/github/stars/Jumman04/Jummania-Chess-Game" alt="GitHub Stars"/>
    </a>
    <a href="https://github.com/Jumman04/Jummania-Chess-Game/blob/master/LICENSE.md">
-   <img src="https://img.shields.io/github/license/Jumman04/Jummania-Chess-Game" alt="GitHub License"/>
+    <img src="https://img.shields.io/github/license/Jumman04/Jummania-Chess-Game.svg" alt="GitHub License"/>
    </a>
 </p>
 
