@@ -185,10 +185,8 @@ class ChessView @JvmOverloads constructor(
 
             // Set the symbol font style, with an option for bold symbols
             setSymbolStyle(
-                SymbolStyle.fromInt(
-                    typedArray.getInt(
-                        R.styleable.ChessView_symbolStyle, 1 // Default style is "CLASSIC"
-                    )
+                typedArray.getInt(
+                    R.styleable.ChessView_symbolStyle, 1 // Default style is "CLASSIC"
                 ), typedArray.getBoolean(R.styleable.ChessView_useBoldSymbol, false)
             )
 
@@ -650,6 +648,21 @@ class ChessView @JvmOverloads constructor(
             isInvalidate = true
             invalidate()
         }
+    }
+
+
+    /**
+     * Sets the chess symbol style using an integer representation of [SymbolStyle] and a bold flag.
+     *
+     * This is a convenience overload of [setSymbolStyle] that accepts an `Int` value instead of
+     * a [SymbolStyle] enum. It converts the integer to a valid [SymbolStyle] and applies the
+     * desired typeface and weight.
+     *
+     * @param style An integer value representing the [SymbolStyle].
+     * @param useBoldSymbol `true` to apply bold styling to the chess symbols; `false` for normal.
+     */
+    fun setSymbolStyle(style: Int, useBoldSymbol: Boolean) {
+        setSymbolStyle(SymbolStyle.fromInt(style), useBoldSymbol)
     }
 
 

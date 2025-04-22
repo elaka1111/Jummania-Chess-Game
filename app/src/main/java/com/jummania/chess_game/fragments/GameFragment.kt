@@ -14,7 +14,6 @@ import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jummania.ChessView
-import com.jummania.SymbolStyle
 import com.jummania.chess_game.MainActivity
 import com.jummania.chess_game.R
 import okhttp3.Call
@@ -31,7 +30,7 @@ import java.io.IOException
  * Dhaka, Bangladesh.
  */
 class GameFragment : Fragment(R.layout.fragment_game) {
-    val client by lazy { (activity as MainActivity).client }
+    private val client by lazy { (activity as MainActivity).client }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -78,14 +77,12 @@ class GameFragment : Fragment(R.layout.fragment_game) {
             )
 
             chessView.setSymbolStyle(
-                SymbolStyle.fromInt(
-                    getString("symbolStyle", "1")!!.toInt()
-                ), getBoolean("isBoldSymbol", false)
+                getString("symbolStyle", "3")!!.toInt(), getBoolean("isBoldSymbol", false)
             )
         }
 
         MaterialAlertDialogBuilder(mActivity).setTitle("Play with Gemini?")
-            .setPositiveButton("Yes", { _, _ ->
+            .setPositiveButton("Yes") { _, _ ->
                 chessView.withOnlinePlayer { friends, enemies ->
                     val prompt =
                         "You are a chess AI playing as White. The board is indexed from 0 (top-left, A8) to 63 (bottom-right, H1).\n\nYour pieces:\n$friends\n\nOpponent's pieces:\n$enemies\n\nFollow these movement rules:\n- Pawn: +8 (move), +7/+9 (capture)\n- Knight: ±6, ±10, ±15, ±17 (L-shape)\n- Bishop: ±7, ±9 (diagonals)\n- Rook: ±1 (row), ±8 (column)\n- Queen: bishop + rook moves\n- King: ±1, ±7, ±8, ±9 (1 square any direction)\n\nIt's your turn. Respond with one legal move only in this format:\nfromPosition, toPosition\nExample: 52, 36"
@@ -97,7 +94,7 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
                     }
                 }
-            }).setNegativeButton("No", null).show()
+            }.setNegativeButton("No", null).show()
 
 
         val mWindow = mActivity.window
