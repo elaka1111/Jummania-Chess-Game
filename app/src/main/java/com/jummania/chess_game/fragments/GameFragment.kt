@@ -1,6 +1,7 @@
 package com.jummania.chess_game.fragments
 
 import android.graphics.Color
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -39,22 +40,15 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
         val preferenceManager = PreferenceManager.getDefaultSharedPreferences(mActivity)
 
+        var mediaPlayer: MediaPlayer? = null
+
         preferenceManager?.apply {
 
-            /*
             val playMusic = getBoolean("playMusic", false)
             if (playMusic) {
-                val mediaPlayer = MediaPlayer.create(mActivity, R.raw.music)
-
-                mediaPlayer.setOnCompletionListener {
-                    mediaPlayer.seekTo(mediaPlayer.duration / 2)
-                    mediaPlayer.start()
-                }
-
-                mediaPlayer.start()
+                mediaPlayer = MediaPlayer.create(mActivity, R.raw.music)
+                playBackground(mediaPlayer!!)
             }
-
-             */
 
             chessView.setSoundEffectEnabled(getBoolean("clickSound", true))
 
@@ -112,9 +106,10 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
         mActivity.onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             MaterialAlertDialogBuilder(mActivity).setTitle("Are you sure you want to exit?")
-                .setMessage("Any unsaved progress may be lost.")
-                .setPositiveButton("Exit") { _, _ -> mActivity.finish() }
-                .setNegativeButton("Cancel", null).show()
+                .setMessage("Any unsaved progress may be lost.").setPositiveButton("Exit") { _, _ ->
+                    mediaPlayer?.release()
+                    mActivity.finish()
+                }.setNegativeButton("Cancel", null).show()
         }
     }
 
@@ -146,6 +141,15 @@ class GameFragment : Fragment(R.layout.fragment_game) {
             }
         })
 
+    }
+
+    private fun playBackground(mediaPlayer: MediaPlayer) {
+        mediaPlayer.setOnCompletionListener {
+            mediaPlayer.seekTo(mediaPlayer.duration / 2)
+            mediaPlayer.start()
+        }
+
+        mediaPlayer.start()
     }
 
 
