@@ -1,7 +1,6 @@
 package com.jummania.chess_game.fragments
 
 import android.graphics.Color
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -42,6 +41,7 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
         preferenceManager?.apply {
 
+            /*
             val playMusic = getBoolean("playMusic", false)
             if (playMusic) {
                 val mediaPlayer = MediaPlayer.create(mActivity, R.raw.music)
@@ -53,6 +53,8 @@ class GameFragment : Fragment(R.layout.fragment_game) {
 
                 mediaPlayer.start()
             }
+
+             */
 
             chessView.setSoundEffectEnabled(getBoolean("clickSound", true))
 
