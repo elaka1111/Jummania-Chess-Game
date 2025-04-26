@@ -27,7 +27,7 @@ enum class SymbolStyle(private val value: Int) {
     /** Symbola style using symbola.ttf font. */
     SYMBOLA(3);
 
-    companion object {
+    internal companion object {
 
         /**
          * Returns the [SymbolStyle] corresponding to the given [value].

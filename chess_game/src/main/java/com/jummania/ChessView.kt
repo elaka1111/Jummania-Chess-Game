@@ -1,7 +1,6 @@
 package com.jummania
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -13,9 +12,7 @@ import android.view.SoundEffectConstants
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.Keep
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.toColorInt
 import com.jummania.ChessView.Companion.isWhiteTurn
 
@@ -44,7 +41,6 @@ import com.jummania.ChessView.Companion.isWhiteTurn
  * @property touchedY The Y-coordinate of the user's touch.
  * @property isInvalidate A flag to track if the view needs to be invalidated for redrawing.
  * @property chessController An instance of the ChessController to manage game logic and piece movements.
- * @property bitmap A bitmap representing the pawn promotion image (if applicable).
  * @property strokeLightColor The color for the stroke effect on light pieces.
  * @property strokeDarkColor The color for the stroke effect on dark pieces.
  * @property lightSquareColor The color for the light squares on the chessboard.
@@ -79,13 +75,6 @@ class ChessView @JvmOverloads constructor(
 
     // Boolean flag to control whether sound effects are played during actions like moves or captures.
     private var enableSoundEffect: Boolean = true
-
-    /**
-     * Bitmap used to represent a transform icon or UI element on the board.
-     * It is lazily initialized to improve performance and avoid unnecessary memory usage
-     * until it’s actually needed.
-     */
-    private val bitmap by lazy { getBitmapFromVectorDrawable(context, R.drawable.transform) }
 
     /**
      * Main controller that handles chess logic, move validation, castling, and other gameplay rules.
@@ -482,48 +471,12 @@ class ChessView @JvmOverloads constructor(
         // Determine the vertical position of the indicator based on the current turn
         val indicatorY = if (isWhiteTurn) y - size / 2 else y + min + size / 2
         val centerX = width / 2f
-        val topY = indicatorY - size / 4
 
         // Set the paint color to red for the turn indicator
         paint.color = Color.RED
 
-        // Check if the pawn can be revived (promoted) and if the bitmap for promotion is available
-        if (chessController.pawnCanRevive(selectedRowNumber) && bitmap != null) {
-            // Draw the bitmap (promotion indicator) at the calculated position
-            canvas.drawBitmap(bitmap!!, centerX, topY, paint)
-
-            // Check if the user tapped in the promotion area and trigger the promotion logic
-            checkPawnPromotion(centerX, topY)
-        } else {
-            // Draw a simple circle as the turn indicator if no promotion is available
-            canvas.drawCircle(centerX, indicatorY, 22f, paint)
-        }
-    }
-
-
-    /**
-     * Checks if a pawn has reached the promotion square and triggers pawn promotion if necessary.
-     *
-     * This method checks if the touch event (based on the coordinates `touchedX` and `touchedY`)
-     * falls within the bounds of the promotion area for the pawn. If the touch is inside the promotion
-     * area, the `revivePawn()` method of the `chessController` is called to initiate the pawn promotion process.
-     *
-     * The promotion area is defined by a bitmap (representing the promotion icon or area), and
-     * the touch coordinates (`centerX`, `topY`) are used to determine if the user clicked on the
-     * promotion region.
-     *
-     * @param centerX The horizontal center position of the promotion area.
-     * @param topY The vertical top position of the promotion area.
-     */
-    private fun checkPawnPromotion(
-        centerX: Float, topY: Float
-    ) {
-        // Check if the bitmap for the promotion area is not null and if the touch coordinates
-        // are inside the bounds of the promotion area.
-        if (bitmap != null && touchedX in centerX..centerX + bitmap!!.width && touchedY in topY..topY + bitmap!!.height) {
-            // Call the chessController's revivePawn method to promote the pawn.
-            chessController.revivePawn(selectedRowNumber)
-        }
+        // Draw a simple circle as the turn indicator if no promotion is available
+        canvas.drawCircle(centerX, indicatorY, 22f, paint)
     }
 
 
@@ -588,21 +541,6 @@ class ChessView @JvmOverloads constructor(
             symbolPaint.color = piece.color
             canvas.drawText(symbol, x, y, symbolPaint)
         }
-    }
-
-
-    /**
-     * Converts a vector drawable resource to a [Bitmap].
-     *
-     * This method fetches the drawable using the provided [drawableId] and converts it
-     * to a bitmap using the [toBitmap] extension.
-     *
-     * @param context The context used to access resources.
-     * @param drawableId The resource ID of the vector drawable.
-     * @return A [Bitmap] representation of the vector drawable, or `null` if drawable not found.
-     */
-    private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
-        return AppCompatResources.getDrawable(context, drawableId)?.toBitmap()
     }
 
 

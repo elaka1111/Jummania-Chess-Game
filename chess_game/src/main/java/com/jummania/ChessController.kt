@@ -861,7 +861,7 @@ internal class ChessController(
      * @param position The position of the pawn to check.
      * @return True if the pawn can be revived, false otherwise.
      */
-    fun pawnCanRevive(position: Int): Boolean {
+    private fun pawnCanRevive(position: Int): Boolean {
         return (if (isWhiteTurn) position in 56..63 else position in 0..7) && chessBoard[position]?.isPawn() == true
     }
 
@@ -871,7 +871,7 @@ internal class ChessController(
      *
      * @param position The position of the pawn to be revived.
      */
-    fun revivePawn(position: Int) {
+    private fun revivePawn(position: Int) {
         val symbols = if ((if (isWhiteTurn) isLightFilled else isDarkFilled)) arrayOf(
             "♛", "♜", "♝", "♞"
         ) // White turn, light theme
@@ -893,7 +893,7 @@ internal class ChessController(
 
                 afterRevival()
                 message("The Pawn revived to $symbol")
-            }.setNegativeButton("Cancel", null).show()
+            }.setCancelable(false).show()
     }
 
 
