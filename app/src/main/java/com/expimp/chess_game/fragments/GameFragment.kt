@@ -84,8 +84,9 @@ class GameFragment : Fragment(R.layout.fragment_game) {
         mActivity.onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             MaterialAlertDialogBuilder(mActivity).setTitle("Are you sure you want to exit?")
                 .setMessage("Any unsaved progress may be lost.").setPositiveButton("Exit") { _, _ ->
-                    mediaPlayer?.release()
-                    mActivity.finish()
+                    parentFragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainerView, HomeFragment()).addToBackStack(null)
+                        .commit()
                 }.setNegativeButton("Cancel", null).show()
         }
     }
