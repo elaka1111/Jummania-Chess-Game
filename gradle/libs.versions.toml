@@ -1,20 +1,20 @@
 [versions]
 agp = "8.9.2"
 androidColorpickerpreference = "v1.2.1"
+jummaniaChessGame = "12c0ea86cc"
 kotlin = "2.0.21"
 coreKtx = "1.16.0"
 appcompat = "1.7.0"
 material = "1.12.0"
-okhttp = "4.12.0"
 preference = "1.2.1"
 
 [libraries]
 android-colorpickerpreference = { module = "com.github.attenzione:android-ColorPickerPreference", version.ref = "androidColorpickerpreference" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+jummania-chess-game = { module = "com.github.Jumman04:Jummania-Chess-Game", version.ref = "jummaniaChessGame" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

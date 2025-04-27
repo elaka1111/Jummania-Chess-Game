@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.jummania.chess_game"
+    namespace = "com.expimp.chess_game"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.jummania.chess_game"
+        applicationId = "com.expimp.chess_game"
         minSdk = 21
         targetSdk = 35
         versionCode = 1
@@ -40,8 +40,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(project(":chess_game"))
     implementation(libs.android.colorpickerpreference)
     implementation(libs.androidx.preference)
-    implementation(libs.okhttp)
+    implementation(libs.jummania.chess.game)
 }

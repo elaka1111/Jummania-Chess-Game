@@ -22,4 +22,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Chess Game"
 include(":app")
-include(":chess_game")
